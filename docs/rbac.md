@@ -9,7 +9,7 @@ Authorization is handled by **Spatie Laravel Permission** for role and permissio
 | Role | Scope | Description |
 |---|---|---|
 | `school-admin` | Tenant | Full access within their school. Cannot access other schools. |
-| `coordinator` | Tenant | Full class management — create, edit, delete classes, generate reports. |
+| `coordinator` | Tenant | Full class management — create, edit, and delete classes. |
 | `teacher` | Tenant | Can view and edit classes they are assigned to. Can add notes. |
 | `teachers-assistant` | Tenant | Same capabilities as teacher. |
 | `read-only` | Tenant | Can view classes and student data. Cannot create, edit, or delete anything. |
@@ -30,7 +30,6 @@ Authorization is handled by **Spatie Laravel Permission** for role and permissio
 | `add student note` | ✅ | ✅ | ✅ | ✅ | ❌ |
 | `view student notes` | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `view strategies` | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `generate report` | ✅ | ✅ | ❌ | ❌ | ❌ |
 
 ---
 
@@ -47,7 +46,6 @@ Permissions control whether a user can perform an action at all. Policies apply 
 | `create` | User has `create class` permission |
 | `update` | User has `edit class` AND (is coordinator/admin OR is assigned to this class) |
 | `delete` | User has `delete class` permission |
-| `generateReport` | User has `generate report` AND (is coordinator/admin OR is assigned to this class) |
 
 ### StudentNotePolicy
 
@@ -94,7 +92,6 @@ $permissions = [
     'add student note',
     'view student notes',
     'view strategies',
-    'generate report',
 ];
 
 foreach ($permissions as $permission) {
@@ -106,7 +103,7 @@ $rolePermissions = [
     'school-admin'       => $permissions, // all
     'coordinator'        => ['view classes', 'create class', 'edit class', 'delete class',
                              'view students', 'add student note', 'view student notes',
-                             'view strategies', 'generate report'],
+                             'view strategies'],
     'teacher'            => ['view classes', 'create class', 'edit class',
                              'view students', 'add student note', 'view student notes', 'view strategies'],
     'teachers-assistant' => ['view classes', 'create class', 'edit class',

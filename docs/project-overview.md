@@ -17,7 +17,6 @@ The project is not a 1:1 replication of the original. It is a deliberate archite
 - Assign staff (teachers, coordinators) to classes
 - View per-student NCCD disability data within a class
 - Add notes to students — including **bulk note creation**: write one note, select multiple students, save for all
-- Generate class reports (PDF)
 - Soft-delete classes (deactivation, not permanent removal)
 
 **NCCD** (National Consistent Collection of Data) is the Australian government's framework for identifying students with disability. Students have an NCCD level of need (QDTP, Supplementary, Substantial, Extensive), a category (Cognitive, Physical, Sensory, Social/Emotional), and a primary disability. The class detail view shows NCCD summary counts in the header.
@@ -44,7 +43,6 @@ The project is not a 1:1 replication of the original. It is a deliberate archite
 | Authentication | Laravel Sanctum | `laravel/sanctum` |
 | Multi-tenancy | Tenancy for Laravel | `stancl/tenancy` ^3.x |
 | RBAC | Spatie Laravel Permission | `spatie/laravel-permission` ^6.x |
-| PDF reports | DomPDF | `barryvdh/laravel-dompdf` |
 | Frontend | Vue 3 SPA | Vite, Vue Router 4, Pinia |
 | HTTP client | Axios | — |
 | Styling | Tailwind CSS | ^3.x |
@@ -77,10 +75,6 @@ Repositories encapsulate all Eloquent queries. Services call repositories; they 
 ### Observers
 
 Model Observers handle side effects triggered by model events. The `ClassObserver` listens for the `created` event and dispatches a notification to assigned staff. This keeps side-effect logic out of services and controllers.
-
-### Builder Pattern
-
-Report generation uses a dedicated `ClassReportBuilder` class to assemble the data structure for a class report before passing it to the PDF renderer. This decouples report data preparation from rendering concerns.
 
 ### API Resources
 
@@ -117,14 +111,12 @@ Class-Functionality/        (git root)
 - Student enrolment and NCCD data display
 - Staff assignment to classes
 - Note creation including bulk notes
-- Class report PDF
 - RBAC with 6 roles
 - Multi-tenancy (one school per tenant)
 - Demo seeder with realistic data
 
 ### Out of Scope
 - Initial Adjustments and intervention strategies
-- Full reporting engine (simple class PDF only)
 - File attachments on notes
 - SMS / school management system integration
 - Full notification system (log-based stub only)

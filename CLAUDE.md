@@ -41,7 +41,6 @@ Class-Functionality/        git root
 | Soft deletes | SoftDeletes trait (`deleted_at`) |
 | API responses | Dedicated API Resources per shape |
 | Patterns | Service Layer, Repository, Observer, Builder |
-| PDF reports | barryvdh/laravel-dompdf |
 | Components | shadcn-vue (owned, not a package dep) |
 | Styling | Tailwind CSS |
 | DB GUI (local) | SQLTools VS Code extension + MySQL/MariaDB driver |
@@ -55,7 +54,6 @@ Class-Functionality/        git root
 - Staff assignment to classes (from seeded users)
 - Student enrolment in classes (from seeded students)
 - Student notes including bulk creation
-- Class report PDF download
 
 **Seeder-only (no UI, no API endpoints):**
 - Creating tenants (schools)
@@ -114,7 +112,6 @@ Details: `docs/models.md`
 - `GET /api/students`
 - `GET /api/users`
 - `GET /api/students/{student}/notes`, `POST /api/notes`
-- `GET /api/classes/{class}/report`
 
 Full contracts: `docs/api-contracts.md`
 

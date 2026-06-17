@@ -341,23 +341,3 @@ Registered in `AppServiceProvider::boot()`:
 SchoolClass::observe(ClassObserver::class);
 ```
 
----
-
-## Builder (Report Generation)
-
-**Responsibility:** Assemble the data structure required for a report before handing it to the renderer. Separates data preparation from PDF rendering.
-
-**Example — `ClassReportBuilder`:**
-```php
-class ClassReportBuilder
-{
-    public function build(SchoolClass $class): array
-    {
-        return [
-            'class'        => $class->load(['yearLevel', 'users', 'students.yearLevel']),
-            'nccd_summary' => $class->students->groupBy('nccd_level')->map->count(),
-            'generated_at' => now()->format('d M Y'),
-        ];
-    }
-}
-```

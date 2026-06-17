@@ -157,4 +157,3 @@ The application UI manages only:
 - Staff assignment to classes
 - Student enrolment in classes
 - Student notes
-- Class report generation

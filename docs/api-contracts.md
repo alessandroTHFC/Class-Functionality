@@ -6,7 +6,7 @@ All tenant API routes are prefixed with `/api` and served from the single Railwa
 
 **Authentication:** All routes except login require `Authorization: Bearer {token}`.
 
-> **Scope note:** Tenants, users, and students are created exclusively via database seeders. There are no API endpoints or UI screens for creating or managing these records. The application is concerned only with class management, enrolment, notes, and reporting over the seeded data.
+> **Scope note:** Tenants, users, and students are created exclusively via database seeders. There are no API endpoints or UI screens for creating or managing these records. The application is concerned only with class management, enrolment, and notes over the seeded data.
 
 ---
 
@@ -475,19 +475,3 @@ List users in the current tenant. Used by the class create/edit form to populate
 }
 ```
 
----
-
-## Reports
-
-### GET /api/classes/{class}/report
-Generate and download a PDF class report.
-
-**Middleware:** `auth:sanctum`, `tenant`
-**Permission:** `generate report`
-**Policy:** `ClassPolicy@generateReport`
-
-**Response 200**
-- Content-Type: `application/pdf`
-- Content-Disposition: `attachment; filename="class-{id}-report.pdf"`
-
-**Response 403** — user lacks permission
