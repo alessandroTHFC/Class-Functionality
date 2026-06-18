@@ -105,16 +105,16 @@ class ClassController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
-        $classes = $this->classService->list($request->only('search', 'per_page'));
+        $classes = $this->classService->list($request->only('search', 'user_id', 'year_level_id', 'per_page'));
 
         return ClassListResource::collection($classes);
     }
 
-    public function store(StoreClassRequest $request): ClassDetailResource
+    public function store(StoreClassRequest $request): JsonResponse
     {
-        $class = $this->classService->create($request->validated());
+        $this->classService->create($request->validated());
 
-        return new ClassDetailResource($class);
+        return response()->json(['message' => 'Class created successfully.'], 201);
     }
 
     public function destroy(SchoolClass $class): JsonResponse
@@ -144,6 +144,11 @@ class ClassService
     public function list(array $filters): LengthAwarePaginator
     {
         return $this->classRepository->paginate($filters);
+    }
+
+    public function summary(): array
+    {
+        return $this->classRepository->tenantSummary();
     }
 
     public function create(array $data): SchoolClass
@@ -189,6 +194,8 @@ class ClassRepository
         return SchoolClass::query()
             ->with(['yearLevel', 'createdBy', 'users'])
             ->when($filters['search'] ?? null, fn ($q, $s) => $q->search($s))
+            ->when($filters['year_level_id'] ?? null, fn ($q, $v) => $q->where('year_level_id', $v))
+            ->when($filters['user_id'] ?? null, fn ($q, $v) => $q->whereHas('users', fn ($u) => $u->where('users.id', $v)))
             ->paginate($filters['per_page'] ?? 15);
     }
 
@@ -210,6 +217,14 @@ class ClassRepository
     public function delete(SchoolClass $class): void
     {
         $class->delete();
+    }
+
+    public function tenantSummary(): array
+    {
+        return [
+            'total_students'    => Student::whereHas('classes')->count(),
+            'teachers_assigned' => User::whereHas('assignedClasses')->count(),
+        ];
     }
 }
 ```

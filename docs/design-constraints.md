@@ -65,8 +65,8 @@ frontend/
 |---|---|---|
 | Page components | PascalCase, descriptive | `ClassDashboard.vue`, `ClassDetail.vue` — all `.vue` files use `<script setup lang="ts">` |
 | Shared components | PascalCase | `BulkNoteModal.vue`, `StudentPanel.vue` |
-| Composables | camelCase, `use` prefix | `useClasses.js`, `useAuth.js` |
-| Pinia stores | camelCase, `use` prefix | `useClassStore.js`, `useAuthStore.js` |
+| Composables | camelCase, `use` prefix | `useClasses.ts`, `useAuth.ts` |
+| Pinia stores | camelCase, `use` prefix | `useClassStore.ts`, `useAuthStore.ts` |
 | API calls | Inside composables only | Never in components or pages directly |
 
 ---
@@ -124,7 +124,7 @@ frontend/
 
 ## API Response Rules
 
-- All list endpoints return paginated responses with a `data` array and `meta` object
+- All list endpoints return paginated responses with a `data` array and `meta` object — **exceptions:** `GET /api/users` (staff picker dropdown) and `GET /api/students/{student}/notes` (scrollable panel) return `data` only with no pagination
 - All single-resource responses wrap the object in a `data` key
 - All success/delete responses return a `message` string
 - Error responses follow Laravel's default validation error format (422) and auth error format (401/403)
@@ -135,8 +135,9 @@ frontend/
 ## Frontend Rules
 
 - All frontend files use TypeScript (`<script setup lang="ts">`) — no plain `.js` files in `frontend/src/`
+- Responsive target is **desktop and tablet only** — use `md:` and `lg:` Tailwind breakpoints. Do not build or test for mobile (`sm` and below)
 - All API calls are made inside composables or Pinia stores — never directly in page or component files
-- The Axios instance is configured once in `src/lib/axios.js` with the base URL and auth interceptor
+- The Axios instance is configured once in `src/lib/axios.ts` with the base URL and auth interceptor
 - The auth token is stored in `localStorage` and attached to all requests via an Axios request interceptor
 - Vue Router guards redirect unauthenticated users to `/login`
 - Components receive data via props — they do not fetch their own data

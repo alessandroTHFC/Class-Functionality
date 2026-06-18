@@ -16,7 +16,7 @@ This is the sequential build roadmap. Each step should be completed and verified
 4. Configure `backend/.env` — set `DB_*` variables to point at Docker MySQL
 5. Run `php artisan migrate` — confirm the default Laravel tables are created
 6. Connect SQLTools in VS Code to the Docker MySQL instance and confirm you can see the database
-7. Scaffold the Vue project: `npm create vite@latest frontend -- --template vue`
+7. Scaffold the Vue project: `npm create vite@latest frontend -- --template vue-ts`
 8. Confirm both `backend/` and `frontend/` exist under the repo root
 
 ---
@@ -54,8 +54,8 @@ This is the sequential build roadmap. Each step should be completed and verified
 21. Create migration: `users` table — add `tenant_id` column, ensure `email` has a global unique index (not scoped)
 22. Create migration: `year_levels` table with `tenant_id`
 23. Create migration: `classes` table with `tenant_id` and `deleted_at`
-24. Create migration: `class_users` pivot table with `tenant_id`
-25. Create migration: `class_students` pivot table with `tenant_id`
+24. Create migration: `class_users` pivot table — `class_id`, `user_id`, no `tenant_id` (isolation inherited through class)
+25. Create migration: `class_students` pivot table — `class_id`, `student_id`, no `tenant_id` (isolation inherited through class)
 26. Create migration: `students` table with `tenant_id`, NCCD enum columns, and `deleted_at`
 27. Create migration: `student_notes` table with `tenant_id` and `deleted_at`
 28. Run `php artisan migrate` — verify all tables appear in SQLTools
@@ -72,18 +72,19 @@ This is the sequential build roadmap. Each step should be completed and verified
 32. Create/update `User` model — add `BelongsToTenant`, `HasRoles`, `SoftDeletes`, relationships
 33. Create `YearLevel` model — add `BelongsToTenant`, relationships
 34. Create `SchoolClass` model — add `BelongsToTenant`, `SoftDeletes`, relationships, scopes
-35. Create `ClassUser` model — add `BelongsToTenant`
-36. Create `ClassStudent` model — add `BelongsToTenant`
+35. Create `ClassUser` model — pivot only, no traits
+36. Create `ClassStudent` model — pivot only, no traits
 37. Create `Student` model — add `BelongsToTenant`, `SoftDeletes`, relationships, casts, `full_name` accessor
 38. Create `StudentNote` model — add `BelongsToTenant`, `SoftDeletes`, relationships, casts
 39. Create `Tenant` model — add `domains()` relationship
 40. Set up `tests/TestCase.php` — base class with tenant initialisation/teardown and `RefreshDatabase` (see `docs/testing.md`)
 41. Configure `tests/Pest.php` — add `actingAsRole()` helper function
-42. Create `UserFactory` — generates realistic staff users
-43. Create `SchoolClassFactory` — generates class records
-44. Create `StudentFactory` — generates students with random NCCD data
-45. Create `StudentNoteFactory` — generates note records
-46. Create `YearLevelFactory` — generates year level records
+42. Create `TenantFactory` — generates a tenant record; required by the TestCase base class
+43. Create `UserFactory` — generates realistic staff users
+44. Create `SchoolClassFactory` — generates class records
+45. Create `StudentFactory` — generates students with random NCCD data
+46. Create `StudentNoteFactory` — generates note records
+47. Create `YearLevelFactory` — generates year level records
 
 ---
 
@@ -91,14 +92,14 @@ This is the sequential build roadmap. Each step should be completed and verified
 
 **Goal:** A single `php artisan db:seed` creates one fully-populated demo school.
 
-47. Create `RolesAndPermissionsSeeder` — seeds all roles and permissions (see `docs/rbac.md`)
-48. Create `TenantSeeder` — creates the demo tenant, initialises tenancy context, calls sub-seeders
-49. Create `UserSeeder` — creates one user per role (coordinator, teacher, teachers-assistant, read-only, school-admin) with realistic names and emails
-50. Create `YearLevelSeeder` — seeds Foundation through Year 12
-51. Create `StudentSeeder` — seeds ~30 students with varied NCCD data across year levels
-52. Create `ClassSeeder` — seeds 3–5 classes with students enrolled and staff assigned
-53. Register all seeders in `DatabaseSeeder.php`
-54. Run `php artisan db:seed` and verify data in SQLTools
+48. Create `RolesAndPermissionsSeeder` — seeds all roles and permissions (see `docs/rbac.md`)
+49. Create `TenantSeeder` — creates the demo tenant, initialises tenancy context, calls sub-seeders
+50. Create `UserSeeder` — creates one user per role (coordinator, teacher, teachers-assistant, read-only, school-admin) with realistic names and emails
+51. Create `YearLevelSeeder` — seeds Foundation through Year 12
+52. Create `StudentSeeder` — seeds ~30 students with varied NCCD data across year levels
+53. Create `ClassSeeder` — seeds 3–5 classes with students enrolled and staff assigned
+54. Register all seeders in `DatabaseSeeder.php`
+55. Run `php artisan db:seed` and verify data in SQLTools
 
 ---
 
@@ -126,13 +127,16 @@ This is the sequential build roadmap. Each step should be completed and verified
 65. Create `ClassService` in `app/Services/`
 66. Create `StoreClassRequest` and `UpdateClassRequest` in `app/Http/Requests/`
 67. Create `ClassListResource` and `ClassDetailResource` in `app/Resources/`
-68. Create `ClassStudentResource` in `app/Resources/`
+68. Create `ClassStudentResource` and `UserResource` in `app/Resources/`
+68a. Create `YearLevelResource` in `app/Resources/`
 69. Create `ClassController` in `app/Http/Controllers/`
 70. Register class routes in `routes/api.php` under the `tenant` middleware group
 71. Create `ClassObserver` and register it in `AppServiceProvider`
-72. Manually verify: GET /classes, POST /classes, GET /classes/{id}, PUT /classes/{id}, DELETE /classes/{id}
-73. Manually verify: POST /classes/{id}/users, DELETE /classes/{id}/users/{userId}
-74. Manually verify: POST /classes/{id}/students, DELETE /classes/{id}/students/{studentId}
+71a. Create `YearLevelController` with a single `index` method — returns all year levels for the tenant as a plain resource collection
+71b. Register `GET /api/year_levels` route in `routes/api.php` under the `tenant` middleware group
+72. Manually verify: GET /classes, GET /year_levels, POST /classes, GET /classes/{id}, PUT /classes/{id}, DELETE /classes/{id}
+73. Manually verify: PUT /classes/{id} with updated user_ids — confirm sync removes unsubmitted users and adds new ones
+74. Manually verify: DELETE /classes/{id}/students/{studentId}
 75. Write `tests/Feature/ClassTest.php` covering all cases in `docs/testing.md`
 76. Write `tests/Feature/ClassStudentTest.php` and `tests/Feature/ClassUserTest.php`
 77. Write `tests/Unit/ClassDetailResourceTest.php` (NCCD summary calculation)
@@ -168,10 +172,10 @@ This is the sequential build roadmap. Each step should be completed and verified
 93. Install frontend dependencies: `npm install vue-router@4 pinia axios`
 94. Install and configure Tailwind CSS in the frontend
 95. Set up shadcn-vue — copy initial base components (Button, Dialog, Input, etc.)
-96. Create `src/lib/axios.js` — configure base URL (`http://localhost:8000`) and Bearer token interceptor
-97. Create `src/router/index.js` — define routes for `/login`, `/classes`, `/classes/:id`
+96. Create `src/lib/axios.ts` — configure base URL (`http://localhost:8000`) and Bearer token interceptor
+97. Create `src/router/index.ts` — define routes for `/login`, `/classes`, `/classes/:id`
 98. Add router guard — redirect unauthenticated users to `/login`
-99. Create `src/stores/useAuthStore.js` — handles login, logout, token persistence in localStorage
+99. Create `src/stores/useAuthStore.ts` — handles login, logout, token persistence in localStorage
 100. Create `LoginPage.vue` — email/password form that calls the login endpoint and stores the token
 
 ---
@@ -180,8 +184,8 @@ This is the sequential build roadmap. Each step should be completed and verified
 
 **Goal:** Authenticated users can see a paginated, searchable list of classes.
 
-101. Create `src/stores/useClassStore.js` — fetches class list, handles pagination state
-102. Create `src/composables/useClasses.js` — wraps API calls (list, create, update, delete)
+101. Create `src/stores/useClassStore.ts` — fetches class list, handles pagination state
+102. Create `src/composables/useClasses.ts` — wraps API calls (list, create, update, delete)
 103. Create `ClassDashboard.vue` page — table/card list of classes with search input and pagination
 104. Create `ClassFormDialog.vue` — modal for create and edit; includes year level select, staff multi-select, student multi-select (all from seeded data via API)
 105. Wire up create class button → dialog → `POST /api/classes`

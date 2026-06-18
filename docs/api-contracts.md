@@ -89,7 +89,7 @@ Return the currently authenticated user with their roles.
 ## Classes
 
 ### GET /api/classes
-List classes for the current tenant. Supports search and pagination.
+List classes for the current tenant. Supports search, filtering, and pagination.
 
 **Middleware:** `auth:sanctum`, `tenant`
 **Permission:** `view classes`
@@ -97,7 +97,9 @@ List classes for the current tenant. Supports search and pagination.
 **Query Parameters**
 | Param | Type | Description |
 |---|---|---|
-| search | string | Filter by class name |
+| search | string | Filter by class name (debounced on frontend) |
+| user_id | integer | Filter to classes that have this user assigned |
+| year_level_id | integer | Filter to classes with this year level |
 | page | integer | Page number (default: 1) |
 | per_page | integer | Results per page (default: 15) |
 
@@ -120,10 +122,16 @@ List classes for the current tenant. Supports search and pagination.
     "current_page": 1,
     "last_page": 3,
     "per_page": 15,
-    "total": 42
+    "total": 42,
+    "summary": {
+      "total_students": 156,
+      "teachers_assigned": 12
+    }
   }
 }
 ```
+
+> `summary` always reflects the full tenant regardless of active filters (`search`, `user_id`, `year_level_id`). `meta.total` covers Total Classes for the stat card. `total_students` is the count of unique students enrolled in any class. `teachers_assigned` is the count of unique users assigned to any class.
 
 ---
 
@@ -156,16 +164,11 @@ Create a new class.
 **Response 201**
 ```json
 {
-  "data": {
-    "id": 5,
-    "name": "Year 9 Science",
-    "year_level": { "id": 9, "description": "Year 9" },
-    "created_by": { "id": 1, "name": "Jane Smith" },
-    "assigned_users": [],
-    "students": []
-  }
+  "message": "Class created successfully."
 }
 ```
+
+> The frontend re-fetches `GET /api/classes` after a successful create to refresh the list. No class data is returned from this endpoint.
 
 ---
 
@@ -174,7 +177,7 @@ Get full detail for a single class including enrolled students with NCCD data.
 
 **Middleware:** `auth:sanctum`, `tenant`
 **Permission:** `view classes`
-**Policy:** `ClassPolicy@view` — teachers/assistants can only view assigned classes
+**Policy:** `ClassPolicy@view`
 
 **Response 200**
 ```json
@@ -213,7 +216,7 @@ Get full detail for a single class including enrolled students with NCCD data.
 ---
 
 ### PUT /api/classes/{class}
-Update a class name and/or year level.
+Update a class. Accepts name, year level, and the full desired lists of assigned staff and enrolled students. Staff and students are synced — any users or students not in the submitted list are removed from the class.
 
 **Middleware:** `auth:sanctum`, `tenant`
 **Permission:** `edit class`
@@ -223,7 +226,9 @@ Update a class name and/or year level.
 ```json
 {
   "name": "Year 9 Advanced Science",
-  "year_level_id": 9
+  "year_level_id": 9,
+  "user_ids": [1, 2, 3],
+  "student_ids": [10, 11, 12]
 }
 ```
 
@@ -232,6 +237,12 @@ Update a class name and/or year level.
 |---|---|
 | name | required, string, max:255 |
 | year_level_id | nullable, integer, exists:year_levels,id |
+| user_ids | nullable, array |
+| user_ids.* | integer, exists:users,id |
+| student_ids | nullable, array |
+| student_ids.* | integer, exists:students,id |
+
+> `user_ids` and `student_ids` are synced, not merged. Submitting an empty array removes all assigned staff or enrolled students respectively. The frontend always sends the full current selection from the multi-select.
 
 **Response 200** — same shape as GET /api/classes/{class}
 
@@ -253,83 +264,10 @@ Soft-delete a class (sets `deleted_at`).
 
 ---
 
-## Class Staff Assignment
-
-### POST /api/classes/{class}/users
-Assign one or more staff members to a class.
-
-**Middleware:** `auth:sanctum`, `tenant`
-**Permission:** `edit class`
-
-**Request**
-```json
-{
-  "user_ids": [2, 3]
-}
-```
-
-**Validation**
-| Field | Rules |
-|---|---|
-| user_ids | required, array, min:1 |
-| user_ids.* | integer, exists:users,id |
-
-**Response 200**
-```json
-{
-  "message": "Staff assigned successfully."
-}
-```
-
----
-
-### DELETE /api/classes/{class}/users/{user}
-Remove a staff member from a class.
-
-**Middleware:** `auth:sanctum`, `tenant`
-**Permission:** `edit class`
-
-**Response 200**
-```json
-{
-  "message": "Staff removed successfully."
-}
-```
-
----
-
 ## Class Student Enrolment
 
-### POST /api/classes/{class}/students
-Enrol one or more students into a class.
-
-**Middleware:** `auth:sanctum`, `tenant`
-**Permission:** `edit class`
-
-**Request**
-```json
-{
-  "student_ids": [10, 11, 12]
-}
-```
-
-**Validation**
-| Field | Rules |
-|---|---|
-| student_ids | required, array, min:1 |
-| student_ids.* | integer, exists:students,id |
-
-**Response 200**
-```json
-{
-  "message": "Students enrolled successfully."
-}
-```
-
----
-
 ### DELETE /api/classes/{class}/students/{student}
-Remove a student from a class.
+Remove a single student from a class. Used from the class detail view (remove button on an individual student). Staff assignment changes always go through `PUT /api/classes/{class}`.
 
 **Middleware:** `auth:sanctum`, `tenant`
 **Permission:** `edit class`
@@ -449,13 +387,35 @@ Create a note for one or more students (bulk note creation). If `student_ids` co
 
 ---
 
+## Year Levels
+
+### GET /api/year_levels
+List all year levels for the current tenant. Used to populate the year level filter on the dashboard and the year level select in the class form.
+
+**Middleware:** `auth:sanctum`, `tenant`
+**Permission:** `view classes`
+
+**Response 200**
+```json
+{
+  "data": [
+    { "id": 1, "description": "Foundation", "sort_order": 1 },
+    { "id": 2, "description": "Year 1", "sort_order": 2 }
+  ]
+}
+```
+
+> No pagination — year levels are a small fixed list (Foundation through Year 12).
+
+---
+
 ## Users (Staff Picker)
 
 ### GET /api/users
 List users in the current tenant. Used by the class create/edit form to populate the staff assignment picker. Read-only — users are created via seeders only.
 
 **Middleware:** `auth:sanctum`, `tenant`
-**Permission:** `edit class`
+**Permission:** `view classes`
 
 **Query Parameters**
 | Param | Type | Description |

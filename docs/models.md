@@ -133,13 +133,14 @@ Pivot between `SchoolClass` and `User`. Defined as a full Eloquent model to allo
 | Field | Type | Nullable | Notes |
 |---|---|---|---|
 | id | bigint (auto) | No | Primary key |
-| tenant_id | string | No | FK → tenants.id |
 | class_id | bigint | No | FK → classes.id |
 | user_id | bigint | No | FK → users.id |
 | created_at | timestamp | Yes | |
 | updated_at | timestamp | Yes | |
 
-**Traits:** `BelongsToTenant`
+> No `tenant_id` on this table. Tenant isolation is inherited through `class_id` — every class already belongs to one tenant and is query-scoped by `BelongsToTenant` on `SchoolClass`. Direct queries on `ClassUser` without going through a class are not used in this application.
+
+**Traits:** none
 
 ---
 
@@ -150,13 +151,14 @@ Pivot between `SchoolClass` and `Student`. Defined as a full Eloquent model to a
 | Field | Type | Nullable | Notes |
 |---|---|---|---|
 | id | bigint (auto) | No | Primary key |
-| tenant_id | string | No | FK → tenants.id |
 | class_id | bigint | No | FK → classes.id |
 | student_id | bigint | No | FK → students.id |
 | created_at | timestamp | Yes | |
 | updated_at | timestamp | Yes | |
 
-**Traits:** `BelongsToTenant`
+> No `tenant_id` on this table. Same reasoning as `ClassUser` — isolation is through `class_id`.
+
+**Traits:** none
 
 ---
 
@@ -175,7 +177,6 @@ Pivot between `SchoolClass` and `Student`. Defined as a full Eloquent model to a
 | nccd_category | string | Yes | Enum: Cognitive, Physical, Sensory, Social/Emotional |
 | primary_disability | string | Yes | Free text |
 | primary_disability_level_formalised | boolean | No | Default: false |
-| photo_path | string | Yes | Relative storage path |
 | created_at | timestamp | Yes | |
 | updated_at | timestamp | Yes | |
 | deleted_at | timestamp | Yes | SoftDeletes |
@@ -216,7 +217,6 @@ protected $casts = [
 | note_date | date | No | |
 | note_type | string | Yes | |
 | confidentiality_level | string | Yes | |
-| file_path | string | Yes | Stubbed — not implemented |
 | created_at | timestamp | Yes | |
 | updated_at | timestamp | Yes | |
 | deleted_at | timestamp | Yes | SoftDeletes |

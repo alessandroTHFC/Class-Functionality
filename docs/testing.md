@@ -51,6 +51,7 @@ Every model has a factory. Factories generate realistic data without depending o
 
 ```
 database/factories/
+├── TenantFactory.php
 ├── UserFactory.php
 ├── SchoolClassFactory.php
 ├── StudentFactory.php
@@ -204,6 +205,7 @@ it('allows read-only to list classes')
 // Creating
 it('allows coordinator to create a class')
 it('allows teacher to create a class')
+it('returns 403 when teachers-assistant tries to create a class')
 it('returns 403 when read-only tries to create a class')
 it('returns 422 when name is missing')
 it('creates class_user records when user_ids are provided')
@@ -211,12 +213,14 @@ it('creates class_student records when student_ids are provided')
 
 // Viewing
 it('allows coordinator to view any class')
-it('allows teacher to view an assigned class')
-it('returns 403 when teacher tries to view an unassigned class')
+it('allows teacher to view any class')
+it('allows read-only to view any class')
+it('returns 401 for an unauthenticated request')
 
 // Updating
 it('allows coordinator to update a class')
-it('allows teacher to update an assigned class')
+it('allows teacher to update a class')
+it('returns 403 when teachers-assistant tries to update a class')
 it('returns 403 when read-only tries to update a class')
 
 // Deleting
@@ -230,12 +234,11 @@ it('soft deletes the class — deleted_at is set, record still exists in db')
 ## ClassStudentTest.php — Cases to Cover
 
 ```php
-it('allows coordinator to enrol students in a class')
-it('allows teacher to enrol students in an assigned class')
-it('returns 403 when read-only tries to enrol students')
-it('does not duplicate a record when enrolling an already-enrolled student')
+it('syncs students when student_ids are submitted via PUT — adds new, removes omitted')
+it('removes all students when student_ids is an empty array via PUT')
+it('returns 403 when read-only tries to update a class with student_ids')
 
-it('allows coordinator to remove a student from a class')
+it('allows coordinator to remove a single student via DELETE /classes/{id}/students/{student}')
 it('returns 403 when read-only tries to remove a student')
 ```
 
@@ -244,12 +247,9 @@ it('returns 403 when read-only tries to remove a student')
 ## ClassUserTest.php — Cases to Cover
 
 ```php
-it('allows coordinator to assign staff to a class')
-it('returns 403 when read-only tries to assign staff')
-it('does not duplicate a record when assigning an already-assigned user')
-
-it('allows coordinator to remove staff from a class')
-it('returns 403 when read-only tries to remove staff')
+it('syncs staff when user_ids are submitted via PUT — adds new, removes omitted')
+it('removes all staff when user_ids is an empty array via PUT')
+it('returns 403 when read-only tries to update a class with user_ids')
 ```
 
 ---

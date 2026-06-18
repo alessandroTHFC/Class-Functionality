@@ -51,6 +51,30 @@ This document is the reference for all frontend work (Phases 10–13). It is der
 
 ---
 
+## Responsive Design
+
+**Target:** Desktop and tablet only. Mobile is explicitly out of scope — this application is used by school staff on desktops and laptops, with tablet as a secondary target.
+
+**Breakpoints (Tailwind):**
+| Breakpoint | Width | Target |
+|---|---|---|
+| `lg` | ≥1024px | Desktop — primary design target |
+| `md` | 768px–1023px | Tablet — must be usable, layout adjusts |
+| `sm` and below | <768px | Not supported |
+
+**Layout behaviour at tablet (`md`):**
+
+| Element | Desktop | Tablet |
+|---|---|---|
+| Sidebar | 88px fixed, always visible | 88px fixed, always visible |
+| Content padding | 32px | 24px |
+| Dashboard stat row | 3 cards in a row | 3 cards in a row (may compress) |
+| Class table | All columns visible | Hide "Teachers Assigned" column if needed |
+| Class Detail two-pane | Side by side (40/60 split) | Stack vertically — student list above, profile below |
+| Class Detail actions | Three buttons in a row | Stack or condense if needed |
+
+---
+
 ## Tech Stack (Frontend)
 
 | Layer | Choice |
@@ -133,6 +157,30 @@ Reusable card used in stat summary rows.
 
 ---
 
+## Role-Based UI Visibility
+
+The user's roles are returned on login and stored in the auth store (`useAuthStore`). Components use the stored role to conditionally render action buttons. The backend enforces authorization independently — this is a UX convenience to avoid showing buttons the user can't use, not a security boundary.
+
+### Helper (in `useAuthStore.ts`)
+
+```ts
+const hasRole = (...roles: string[]) => roles.includes(user.value?.role)
+```
+
+### Visibility Rules
+
+| UI Element | Visible to |
+|---|---|
+| "Create Class" button (dashboard) | `school-admin`, `coordinator`, `teacher` |
+| "Edit Class" button (class detail) | `school-admin`, `coordinator`, `teacher` |
+| "Delete Class" button (class detail) | `school-admin`, `coordinator` |
+| "Add Note" / "Add Multiple Notes" buttons | `school-admin`, `coordinator`, `teacher`, `teachers-assistant` |
+| All class list and detail content | All authenticated roles |
+
+Teachers-assistants and read-only users see the class list and class detail but have no create, edit, or delete buttons rendered. Read-only users also have no note-creation buttons.
+
+---
+
 ## Pages
 
 ---
@@ -169,8 +217,15 @@ Layout: Search (40%) — Teacher filter (25%) — Year Level filter (25%) — Cr
 |---|---|---|
 | Search | Input | Left icon: `Search`, placeholder: "Search classes by name..." |
 | Teacher filter | Select | Populated from `GET /api/users` |
-| Year level filter | Select | Populated from year levels list |
+| Year level filter | Select | Populated from `GET /api/year_levels` |
 | Create Class | Button (primary) | Icon: `Plus`, text: "Create Class" |
+
+**Filter trigger behaviour — no search button:**
+- **Text search:** debounced — the API call fires automatically ~300ms after the user stops typing. Clears results and resets to page 1 on each new search.
+- **Teacher filter:** fires immediately on dropdown selection change.
+- **Year Level filter:** fires immediately on dropdown selection change.
+- All three filters are combined in a single `GET /api/classes` call with the active params. Changing any filter resets pagination to page 1.
+- A "Clear filters" link appears when any filter is active, resetting all fields and reloading the full list.
 
 ### Class Table
 **shadcn:** Table
@@ -191,17 +246,71 @@ Layout: Search (40%) — Teacher filter (25%) — Year Level filter (25%) — Cr
 
 ## Create / Edit Class Dialog (`ClassFormDialog.vue`)
 
-Triggered by "Create Class" or "Edit" from the actions dropdown.
+Triggered by "Create Class" or "Edit" from the actions dropdown. All data is saved in a single API call when the user clicks Save — no intermediate saves occur on individual selections.
 
-**shadcn:** Dialog, Input, Select, Button, Combobox (for multi-select)
+**shadcn:** Dialog, Input, Select, Button, Badge, ScrollArea
 
-**Fields:**
-- Class name (Input, required)
-- Year level (Select)
-- Assign staff (multi-select from `GET /api/users`)
-- Enrol students (multi-select from `GET /api/students`)
+### Layout — 2 columns inside the dialog
 
-**Actions:** Cancel (outline) + Save / Create (primary)
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Left column (class details)  │  Right column (student list) │
+│                               │                              │
+│  Class Name [_____________]   │  [Search students...      ]  │
+│                               │  ┌──────────────────────┐    │
+│  Teacher    [____________▼]   │  │ Bart Simpson    QDTP +│   │
+│                               │  │ Lisa Simpson    Supp ✓│   │
+│  Year Level [____________▼]   │  │ Emily Clarke    Subs +│   │
+│                               │  │ ...                   │   │
+│  Enrolled students:           │  └──────────────────────┘    │
+│  [Bart ×] [Emily ×]           │  (scrollable)                │
+│                               │                              │
+│              [Cancel]  [Save] │                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Left Column — Class Details
+
+| Field | Component | Source | Notes |
+|---|---|---|---|
+| Class Name | Input | — | Required |
+| Teacher | Select (multi) | `GET /api/users` | Multi-select dropdown; can assign multiple staff |
+| Year Level | Select | `GET /api/year_levels` | Optional |
+| Selected students | Badge list | Local state | Populated by the student picker (right column) |
+
+Each selected student appears as a badge showing their name with an `×` icon. Clicking `×` removes them from the local selection without any API call.
+
+### Right Column — Student Picker
+
+- Search input at the top (debounced, filters the list as the user types)
+- Scrollable list of all tenant students from `GET /api/students`
+- Each row: student name + NCCD level + action icon on the right
+
+**Student row states:**
+| State | Icon | Behaviour |
+|---|---|---|
+| Not selected | `Plus` (teal) | Click → appends student to local selected array, icon changes to tick |
+| Selected | `Check` (greyed, disabled) | Non-interactive — prevents double-selection |
+
+Clicking `Plus` does **not** make an API call. It only appends the student to a local `selectedStudentIds` array. The actual save happens when the user clicks Save.
+
+### Edit Mode
+
+When opened in edit mode, the dialog is pre-populated using data already in the store — no additional API call is made on open. The class detail page loads `GET /api/classes/{id}` on mount, which includes `assigned_users` and `students`. The edit dialog reads directly from that cached response.
+
+- Name, year level, and teacher fields filled from the store
+- All currently enrolled students shown as badges in the left column
+- Those same students shown with a tick icon in the right-hand student list
+
+If the user cancels the dialog, local state is discarded and the store data remains unchanged.
+
+### Save Behaviour
+
+On Save, a single API call is made:
+- **Create:** `POST /api/classes` — sends `name`, `year_level_id`, `user_ids`, `student_ids`
+- **Edit:** `PUT /api/classes/{class}` — sends the same fields; backend syncs users and students (adds new, removes omitted)
+
+**Actions:** Cancel (outline) + Save / Update (primary, shows spinner while request is in-flight)
 
 ---
 
@@ -382,10 +491,143 @@ Submits to `POST /api/notes` with `student_ids` array. Closes on success, refres
 
 ## API Additions Required
 
-| Requirement | Endpoint | Change |
+| Requirement | Endpoint | Status |
 |---|---|---|
-| Dashboard stats totals | `GET /api/classes` | Add `summary` to response meta |
-| NCCD student count | `GET /api/classes/{id}` | Add to `ClassDetailResource` |
+| Dashboard stats totals | `GET /api/classes` | Documented — `summary` object in `meta` |
+| NCCD student count | `GET /api/classes/{id}` | Documented — `nccd_summary` in `ClassDetailResource` |
+
+---
+
+## Action Feedback Patterns
+
+All user-initiated actions follow a consistent feedback model. This section is the source of truth for what happens after every action in the application.
+
+### Toast Notifications
+
+Use **Sonner** (the shadcn-vue toast library) for all non-blocking feedback. Toasts appear top-right, auto-dismiss after 4 seconds.
+
+**shadcn:** `Sonner` / `useToast`
+
+Four variants used:
+| Variant | When |
+|---|---|
+| `success` | Action completed as expected |
+| `error` | Server error, network failure, or permission denied |
+| `warning` | Action completed but with a caveat |
+| `info` | Neutral informational feedback (rarely needed) |
+
+---
+
+### Confirmation Dialogs
+
+Destructive actions (delete, remove) always require a confirmation dialog before the request is sent. The user must explicitly confirm — no undo available.
+
+**shadcn:** `Dialog` (confirmation variant — no form fields, just title + description + Cancel / Confirm buttons)
+
+Confirm button is styled with the danger colour (`#D14343`).
+
+---
+
+### Loading States
+
+Three distinct loading contexts exist in this application. Each uses a different pattern.
+
+---
+
+#### 1. Button Loading (action in progress)
+
+All action buttons show a loading spinner and are disabled while the request is in progress. This prevents double-submission.
+
+**shadcn:** `Button` with `disabled` prop + Lucide `Loader2` icon (animated spin class)
+
+---
+
+#### 2. Page Loading (initial data fetch)
+
+When a page is navigating to for the first time and its data has not yet loaded, show a skeleton layout rather than a spinner. Skeletons match the approximate shape of the real content so the layout does not shift when data arrives.
+
+| Page | Skeleton |
+|---|---|
+| Class Dashboard (`/classes`) | Stat card skeletons (3 cards, fixed height) + table row skeletons (5–6 rows, alternating lines) |
+| Class Detail (`/classes/:id`) | Stat card skeletons (2 cards) + Class Info block skeleton + two-pane layout skeletons (student list rows left, empty panel right) |
+
+**shadcn:** `Skeleton` component. Apply `animate-pulse` via Tailwind.
+
+The skeleton is shown while the composable's `isLoading` ref is `true`. Once the data resolves, the real content replaces it. There is no spinner for page-level loading — skeletons only.
+
+---
+
+#### 3. Student Panel Loading (student selection)
+
+When the user clicks a different student in the student list, the student panel on the right must reload with that student's data (NCCD details + notes). The student list remains visible and interactive during this load — only the panel content changes.
+
+**Behaviour:**
+- The panel area shows a skeleton while the student data is fetching
+- The previously selected student remains highlighted in the list during the load
+- The skeleton matches the panel layout: avatar + name block at top, info rows below, then a notes list skeleton
+- Once data resolves, the skeleton is replaced with the real student panel
+
+**Implementation note:** The student detail data is already included in `GET /api/classes/{id}` (all enrolled students are embedded in the response). The panel load is therefore instant for NCCD data — no second API call needed. The only case requiring a loading state is the notes fetch, which is a separate `GET /api/students/{id}/notes` call triggered when a student is selected.
+
+For notes: show a small skeleton (3–4 note row skeletons) inside the Notes tab while `isLoadingNotes` is `true`.
+
+---
+
+### Inline Form Validation
+
+When a `POST` or `PUT` returns a `422` from the backend, field-level error messages are shown beneath each invalid input inside the form/dialog. The toast is **not** used for validation errors — the form itself surfaces them.
+
+**shadcn:** use the `FormItem` / `FormMessage` pattern from shadcn form components.
+
+---
+
+### Full Action Response Reference
+
+#### Classes
+
+| Action | Trigger | Success Toast | Error Handling |
+|---|---|---|---|
+| Create class | Submit ClassFormDialog | `"'{name}' has been created."` (success) — then re-fetches `GET /api/classes` to refresh the list | 422 → inline field errors in dialog. 500 → error toast: `"Something went wrong. Please try again."` |
+| Edit class | Submit ClassFormDialog (edit mode) | `"'{name}' has been updated."` (success) | 422 → inline field errors. 500 → error toast |
+| Delete class | Confirm deletion dialog | `"Class deleted successfully."` (success) | 403 → error toast: `"You don't have permission to delete this class."`. 500 → error toast |
+
+#### Student Enrolment
+
+| Action | Trigger | Success Toast | Error Handling |
+|---|---|---|---|
+| Remove student (individual) | Confirmation dialog on class detail | `"Student removed from class."` (success) | 500 → error toast |
+
+> Staff and student changes made inside the Create/Edit dialog are covered by the Create class and Edit class toasts above — they are part of the same `POST` or `PUT` request, not separate actions.
+
+#### Notes
+
+| Action | Trigger | Success Toast | Error Handling |
+|---|---|---|---|
+| Save note (single) | Submit NoteComposer | `"Note saved."` (success) | 422 → inline error beneath textarea. 500 → error toast |
+| Save bulk notes | Submit BulkNoteModal | `"Note saved for {n} student(s)."` (success) | 422 → inline errors. 500 → error toast |
+
+#### Authentication
+
+| Action | Trigger | Success Toast | Error Handling |
+|---|---|---|---|
+| Login | Submit login form | None — redirect to `/classes` | 401 → inline error beneath form: `"Incorrect email or password."`. 500 → error toast |
+| Logout | Click logout in sidebar | None — redirect to `/login` | 500 → error toast, still clear token and redirect |
+
+---
+
+### Global Error Handling (Axios Interceptor)
+
+An Axios response interceptor in `src/lib/axios.ts` handles errors globally so individual composables don't need to repeat this logic:
+
+| HTTP Status | Behaviour |
+|---|---|
+| `401` | Clear auth token, redirect to `/login` |
+| `403` | Show error toast: `"You don't have permission to do this."` |
+| `422` | Return the validation errors to the calling composable — handled inline in the form |
+| `500` | Show error toast: `"Something went wrong. Please try again."` |
+| Network error | Show error toast: `"Unable to connect. Check your connection."` |
+
+The `422` case is intentionally **not** handled globally — validation errors are returned to the composable and displayed inline in the relevant form.
 
 ---
 

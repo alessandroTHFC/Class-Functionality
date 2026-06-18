@@ -110,10 +110,10 @@ Details: `docs/models.md`
 
 - `POST /api/login`, `POST /api/logout`, `GET /api/user`
 - `GET|POST /api/classes`, `GET|PUT|DELETE /api/classes/{class}`
-- `POST|DELETE /api/classes/{class}/users/{user}`
-- `POST|DELETE /api/classes/{class}/students/{student}`
+- `DELETE /api/classes/{class}/students/{student}`
 - `GET /api/students`
 - `GET /api/users`
+- `GET /api/year_levels`
 - `GET /api/students/{student}/notes`, `POST /api/notes`
 
 Full contracts: `docs/api-contracts.md`

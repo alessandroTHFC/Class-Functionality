@@ -10,8 +10,8 @@ Authorization is handled by **Spatie Laravel Permission** for role and permissio
 |---|---|---|
 | `school-admin` | Tenant | Full access within their school. Cannot access other schools. |
 | `coordinator` | Tenant | Full class management — create, edit, and delete classes. |
-| `teacher` | Tenant | Can view and edit classes they are assigned to. Can add notes. |
-| `teachers-assistant` | Tenant | Same capabilities as teacher. |
+| `teacher` | Tenant | Can view and edit all classes. Can add notes. |
+| `teachers-assistant` | Tenant | Can view all classes and student data. Can add notes. Cannot create, edit, or delete classes. |
 | `read-only` | Tenant | Can view classes and student data. Cannot create, edit, or delete anything. |
 
 > There is no `super-admin` role in the application UI for this portfolio project. Super admin actions (creating tenants, seeding data) are done via Artisan/seeders.
@@ -23,13 +23,12 @@ Authorization is handled by **Spatie Laravel Permission** for role and permissio
 | Permission | school-admin | coordinator | teacher | teachers-assistant | read-only |
 |---|:---:|:---:|:---:|:---:|:---:|
 | `view classes` | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `create class` | ✅ | ✅ | ✅ | ✅ | ❌ |
-| `edit class` | ✅ | ✅ | ✅ | ✅ | ❌ |
+| `create class` | ✅ | ✅ | ✅ | ❌ | ❌ |
+| `edit class` | ✅ | ✅ | ✅ | ❌ | ❌ |
 | `delete class` | ✅ | ✅ | ❌ | ❌ | ❌ |
 | `view students` | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `add student note` | ✅ | ✅ | ✅ | ✅ | ❌ |
 | `view student notes` | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `view strategies` | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ---
 
@@ -42,17 +41,17 @@ Permissions control whether a user can perform an action at all. Policies apply 
 | Method | Rule |
 |---|---|
 | `viewAny` | User has `view classes` permission |
-| `view` | User has `view classes` AND (is coordinator/admin OR is assigned to this class) |
+| `view` | User has `view classes` permission |
 | `create` | User has `create class` permission |
-| `update` | User has `edit class` AND (is coordinator/admin OR is assigned to this class) |
+| `update` | User has `edit class` permission |
 | `delete` | User has `delete class` permission |
 
 ### StudentNotePolicy
 
 | Method | Rule |
 |---|---|
-| `create` | User has `add student note` AND the student is enrolled in a class the user is assigned to (or user is coordinator/admin) |
-| `viewAny` | User has `view student notes` |
+| `create` | User has `add student note` permission |
+| `viewAny` | User has `view student notes` permission |
 
 ---
 
@@ -91,7 +90,6 @@ $permissions = [
     'view students',
     'add student note',
     'view student notes',
-    'view strategies',
 ];
 
 foreach ($permissions as $permission) {
@@ -102,13 +100,11 @@ foreach ($permissions as $permission) {
 $rolePermissions = [
     'school-admin'       => $permissions, // all
     'coordinator'        => ['view classes', 'create class', 'edit class', 'delete class',
-                             'view students', 'add student note', 'view student notes',
-                             'view strategies'],
+                             'view students', 'add student note', 'view student notes'],
     'teacher'            => ['view classes', 'create class', 'edit class',
-                             'view students', 'add student note', 'view student notes', 'view strategies'],
-    'teachers-assistant' => ['view classes', 'create class', 'edit class',
-                             'view students', 'add student note', 'view student notes', 'view strategies'],
-    'read-only'          => ['view classes', 'view students', 'view student notes', 'view strategies'],
+                             'view students', 'add student note', 'view student notes'],
+    'teachers-assistant' => ['view classes', 'view students', 'add student note', 'view student notes'],
+    'read-only'          => ['view classes', 'view students', 'view student notes'],
 ];
 
 foreach ($rolePermissions as $roleName => $perms) {

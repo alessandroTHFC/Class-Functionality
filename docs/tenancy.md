@@ -16,8 +16,8 @@ This project uses **single-database multi-tenancy** via `stancl/tenancy`. All te
 | `classes` | Isolated (tenant_id) | |
 | `students` | Isolated (tenant_id) | |
 | `student_notes` | Isolated (tenant_id) | |
-| `class_users` | Isolated (tenant_id) | |
-| `class_students` | Isolated (tenant_id) | |
+| `class_users` | Isolated (via class_id) | No tenant_id — isolation inherited through SchoolClass |
+| `class_students` | Isolated (via class_id) | No tenant_id — isolation inherited through SchoolClass |
 | `year_levels` | Isolated (tenant_id) | |
 | Spatie roles/permissions | Isolated (team = tenant_id) | Scoped via Spatie teams feature |
 
@@ -165,8 +165,6 @@ Key settings for single-database mode:
     \App\Models\SchoolClass::class,
     \App\Models\Student::class,
     \App\Models\StudentNote::class,
-    \App\Models\ClassUser::class,
-    \App\Models\ClassStudent::class,
     \App\Models\YearLevel::class,
 ],
 ```
