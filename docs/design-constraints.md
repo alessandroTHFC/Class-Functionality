@@ -36,6 +36,7 @@ frontend/
 │   ├── pages/              Route-level page components
 │   ├── router/             Vue Router configuration
 │   ├── stores/             Pinia stores
+│   ├── types/              TypeScript interfaces and type aliases (index.ts)
 │   └── lib/                Utilities (axios instance, helpers)
 ```
 
@@ -135,6 +136,7 @@ frontend/
 ## Frontend Rules
 
 - All frontend files use TypeScript (`<script setup lang="ts">`) — no plain `.js` files in `frontend/src/`
+- All shared types and interfaces are defined in `src/types/index.ts` — composables, stores, and components import from there; no inline type definitions for API shapes
 - Responsive target is **desktop and tablet only** — use `md:` and `lg:` Tailwind breakpoints. Do not build or test for mobile (`sm` and below)
 - All API calls are made inside composables or Pinia stores — never directly in page or component files
 - The Axios instance is configured once in `src/lib/axios.ts` with the base URL and auth interceptor

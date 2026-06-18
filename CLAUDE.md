@@ -6,7 +6,7 @@ This file is read automatically at the start of every Claude Code session. It re
 
 ## What This Project Is
 
-A Laravel 11 SaaS skeleton implementing the "Class" feature from Inspire — a multi-tenant school management platform used by 50+ Australian schools. Portfolio project for Alessandro Pangrazio (SRA Information Technology, Australia).
+A Laravel 13 SaaS skeleton implementing the "Class" feature from Inspire — a multi-tenant school management platform used by 50+ Australian schools. Portfolio project for Alessandro Pangrazio (SRA Information Technology, Australia).
 
 Full background: see `docs/project-overview.md`
 
@@ -16,7 +16,7 @@ Full background: see `docs/project-overview.md`
 
 ```
 Class-Functionality/        git root
-├── backend/                Laravel 11 JSON API (not yet scaffolded)
+├── backend/                Laravel 13 JSON API (not yet scaffolded)
 ├── frontend/               Vue 3 SPA (not yet scaffolded)
 ├── docker-compose.yml      MySQL 8 local dev container
 ├── docs/                   Full documentation package
@@ -29,7 +29,7 @@ Class-Functionality/        git root
 
 | Decision              | Choice                                                |
 | --------------------- | ----------------------------------------------------- |
-| Backend               | Laravel 11 JSON API                                   |
+| Backend               | Laravel 13 JSON API                                   |
 | Frontend              | Standalone Vue 3 SPA — NOT Inertia                    |
 | Database (local)      | MySQL 8 via Docker                                    |
 | Database (production) | MySQL on Railway                                      |

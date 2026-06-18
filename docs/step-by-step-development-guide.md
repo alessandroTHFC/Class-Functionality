@@ -10,14 +10,14 @@ This is the sequential build roadmap. Each step should be completed and verified
 
 **Goal:** Get both applications running locally with a working database connection.
 
-1. Scaffold the Laravel project inside the repo root: `laravel new backend --no-interaction`
-2. Add `docker-compose.yml` at the repo root with a MySQL 8 service
-3. Start Docker: `docker compose up -d`
-4. Configure `backend/.env` — set `DB_*` variables to point at Docker MySQL
-5. Run `php artisan migrate` — confirm the default Laravel tables are created
+1. ✅ Scaffold the Laravel project inside the repo root: `laravel new backend --no-interaction`
+2. ✅ Add `docker-compose.yml` at the repo root with a MySQL 8 service
+3. ✅ Start Docker: `docker compose up -d`
+4. ✅ Configure `backend/.env` — set `DB_*` variables to point at Docker MySQL
+5. ✅ Run `php artisan migrate` — confirm the default Laravel tables are created
 6. Connect SQLTools in VS Code to the Docker MySQL instance and confirm you can see the database
-7. Scaffold the Vue project: `npm create vite@latest frontend -- --template vue-ts`
-8. Confirm both `backend/` and `frontend/` exist under the repo root
+7. ✅ Scaffold the Vue project: `npm create vite@latest frontend -- --template vue-ts`
+8. ✅ Confirm both `backend/` and `frontend/` exist under the repo root
 
 ---
 
@@ -169,14 +169,145 @@ This is the sequential build roadmap. Each step should be completed and verified
 
 **Goal:** Vue app running, connected to the Laravel API, with routing and auth store in place.
 
-93. Install frontend dependencies: `npm install vue-router@4 pinia axios`
-94. Install and configure Tailwind CSS in the frontend
-95. Set up shadcn-vue — copy initial base components (Button, Dialog, Input, etc.)
-96. Create `src/lib/axios.ts` — configure base URL (`http://localhost:8000`) and Bearer token interceptor
-97. Create `src/router/index.ts` — define routes for `/login`, `/classes`, `/classes/:id`
-98. Add router guard — redirect unauthenticated users to `/login`
-99. Create `src/stores/useAuthStore.ts` — handles login, logout, token persistence in localStorage
-100. Create `LoginPage.vue` — email/password form that calls the login endpoint and stores the token
+93. Create `src/types/index.ts` — define all shared TypeScript interfaces based on API response shapes:
+
+```ts
+// Auth
+export interface AuthUser {
+  id: number
+  name: string
+  email: string
+  roles: string[]
+  tenant: { id: string; name: string }
+}
+
+export interface LoginResponse {
+  token: string
+  user: Pick<AuthUser, 'id' | 'name' | 'email' | 'roles'>
+}
+
+// Shared primitives
+export interface YearLevel {
+  id: number
+  description: string
+  sort_order?: number
+}
+
+export interface UserSummary {
+  id: number
+  name: string
+  roles: string[]
+}
+
+// Pagination
+export interface PaginatedMeta {
+  current_page: number
+  last_page: number
+  per_page: number
+  total: number
+}
+
+export interface PaginatedResponse<T> {
+  data: T[]
+  meta: PaginatedMeta
+}
+
+// Classes — list
+export interface ClassSummary {
+  total_students: number
+  teachers_assigned: number
+}
+
+export interface ClassListMeta extends PaginatedMeta {
+  summary: ClassSummary
+}
+
+export interface ClassListItem {
+  id: number
+  name: string
+  year_level: YearLevel | null
+  created_by: { id: number; name: string }
+  assigned_users: UserSummary[]
+  student_count: number
+}
+
+// Classes — detail
+export interface NccdSummary {
+  QDTP: number
+  Supplementary: number
+  Substantial: number
+  Extensive: number
+}
+
+export interface StudentDetail {
+  id: number
+  full_name: string
+  given_name: string
+  family_name: string
+  year_level: YearLevel | null
+  nccd_level: string | null
+  nccd_category: string | null
+  primary_disability: string | null
+  primary_disability_level_formalised: boolean
+}
+
+export interface ClassDetail {
+  id: number
+  name: string
+  year_level: YearLevel | null
+  created_by: { id: number; name: string }
+  assigned_users: UserSummary[]
+  nccd_summary: NccdSummary
+  students: StudentDetail[]
+}
+
+// Students — picker list
+export interface StudentListItem {
+  id: number
+  full_name: string
+  given_name: string
+  family_name: string
+  year_level: YearLevel | null
+}
+
+// Notes
+export interface StudentNote {
+  id: number
+  note_text: string
+  note_date: string
+  note_type: string | null
+  confidentiality_level: string | null
+  author: { id: number; name: string }
+  class: { id: number; name: string }
+  created_at: string
+}
+
+// API request payloads
+export interface StoreClassPayload {
+  name: string
+  year_level_id: number | null
+  user_ids: number[]
+  student_ids: number[]
+}
+
+export interface StoreNotePayload {
+  student_ids: number[]
+  class_id: number
+  note_text: string
+  note_date: string
+  note_type: string | null
+  confidentiality_level: string | null
+}
+```
+
+94. Install frontend dependencies: `npm install vue-router@4 pinia axios`
+95. Install and configure Tailwind CSS in the frontend
+96. Set up shadcn-vue — copy initial base components (Button, Dialog, Input, etc.)
+97. Create `src/lib/axios.ts` — configure base URL (`http://localhost:8000`) and Bearer token interceptor
+98. Create `src/router/index.ts` — define routes for `/login`, `/classes`, `/classes/:id`
+99. Add router guard — redirect unauthenticated users to `/login`
+100. Create `src/stores/useAuthStore.ts` — handles login, logout, token persistence in localStorage
+101. Create `LoginPage.vue` — email/password form that calls the login endpoint and stores the token
 
 ---
 
@@ -184,13 +315,13 @@ This is the sequential build roadmap. Each step should be completed and verified
 
 **Goal:** Authenticated users can see a paginated, searchable list of classes.
 
-101. Create `src/stores/useClassStore.ts` — fetches class list, handles pagination state
-102. Create `src/composables/useClasses.ts` — wraps API calls (list, create, update, delete)
-103. Create `ClassDashboard.vue` page — table/card list of classes with search input and pagination
-104. Create `ClassFormDialog.vue` — modal for create and edit; includes year level select, staff multi-select, student multi-select (all from seeded data via API)
-105. Wire up create class button → dialog → `POST /api/classes`
-106. Wire up edit button → dialog pre-populated → `PUT /api/classes/{id}`
-107. Wire up delete button → confirmation → `DELETE /api/classes/{id}`
+102. Create `src/stores/useClassStore.ts` — fetches class list, handles pagination state
+103. Create `src/composables/useClasses.ts` — wraps API calls (list, create, update, delete)
+104. Create `ClassDashboard.vue` page — table/card list of classes with search input and pagination
+105. Create `ClassFormDialog.vue` — modal for create and edit; includes year level select, staff multi-select, student multi-select (all from seeded data via API)
+106. Wire up create class button → dialog → `POST /api/classes`
+107. Wire up edit button → dialog pre-populated → `PUT /api/classes/{id}`
+108. Wire up delete button → confirmation → `DELETE /api/classes/{id}`
 
 ---
 
@@ -198,10 +329,10 @@ This is the sequential build roadmap. Each step should be completed and verified
 
 **Goal:** Clicking a class opens a two-pane view showing enrolled students and per-student data.
 
-108. Create `ClassDetail.vue` page — two-pane layout (student list left, student detail panel right)
-109. Create `StudentList.vue` component — lists enrolled students, clicking one selects them
-110. Create `StudentPanel.vue` component — shows selected student's NCCD data and a Notes tab
-111. Fetch class detail via `GET /api/classes/{id}` and display the NCCD summary counts in the header
+109. Create `ClassDetail.vue` page — two-pane layout (student list left, student detail panel right)
+110. Create `StudentList.vue` component — lists enrolled students, clicking one selects them
+111. Create `StudentPanel.vue` component — shows selected student's NCCD data and a Notes tab
+112. Fetch class detail via `GET /api/classes/{id}` and display the NCCD summary counts in the header
 
 ---
 
@@ -209,11 +340,11 @@ This is the sequential build roadmap. Each step should be completed and verified
 
 **Goal:** Staff can view existing notes and create new ones, including bulk creation.
 
-112. Create `NotesList.vue` component — displays notes inside the StudentPanel Notes tab
-113. Create `BulkNoteModal.vue` — multi-student selector + note form; submits to `POST /api/notes`
-114. Wire up "Add Note" button in StudentPanel for single-student note creation
-115. Wire up "Bulk Note" button in ClassDetail for bulk note creation across selected students
-116. Refresh notes list after submission
+113. Create `NotesList.vue` component — displays notes inside the StudentPanel Notes tab
+114. Create `BulkNoteModal.vue` — multi-student selector + note form; submits to `POST /api/notes`
+115. Wire up "Add Note" button in StudentPanel for single-student note creation
+116. Wire up "Bulk Note" button in ClassDetail for bulk note creation across selected students
+117. Refresh notes list after submission
 
 ---
 
@@ -221,13 +352,13 @@ This is the sequential build roadmap. Each step should be completed and verified
 
 **Goal:** Application running on Railway, accessible via a public URL.
 
-117. Create a Railway project and provision a MySQL service
-118. Configure environment variables in Railway for the Laravel backend (`DB_*`, `APP_KEY`, `APP_URL`, `SANCTUM_STATEFUL_DOMAINS`)
-119. Deploy the Laravel backend to Railway (connect GitHub repo, set root to `backend/`)
-120. Run `php artisan migrate --seed` on Railway via the Railway console
-121. Build the Vue SPA: `npm run build` — update the Axios base URL to the Railway backend URL
-122. Deploy the Vue frontend to Railway (or Vercel/Netlify — any static host)
-123. Smoke test: login, view classes, create a note
+118. Create a Railway project and provision a MySQL service
+119. Configure environment variables in Railway for the Laravel backend (`DB_*`, `APP_KEY`, `APP_URL`, `SANCTUM_STATEFUL_DOMAINS`)
+120. Deploy the Laravel backend to Railway (connect GitHub repo, set root to `backend/`)
+121. Run `php artisan migrate --seed` on Railway via the Railway console
+122. Build the Vue SPA: `npm run build` — update the Axios base URL to the Railway backend URL
+123. Deploy the Vue frontend to Railway (or Vercel/Netlify — any static host)
+124. Smoke test: login, view classes, create a note
 
 ---
 
@@ -235,6 +366,6 @@ This is the sequential build roadmap. Each step should be completed and verified
 
 **Goal:** GitHub repo is presentable to Beliven.
 
-124. Write `README.md` at the repo root — project overview, setup instructions, tech stack, architectural decision rationale
-125. Review and finalise all files in `docs/`
-126. Commit all documentation
+125. Write `README.md` at the repo root — project overview, setup instructions, tech stack, architectural decision rationale
+126. Review and finalise all files in `docs/`
+127. Commit all documentation
