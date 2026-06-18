@@ -6,7 +6,7 @@ This file is read automatically at the start of every Claude Code session. It re
 
 ## What This Project Is
 
-A Laravel 11 SaaS skeleton implementing the "Class" feature from Inspire — a multi-tenant school management platform used by 50+ Australian schools. Portfolio project for Alessandro Pangrazio (SRA Information Technology, Australia), built for a Beliven job application.
+A Laravel 11 SaaS skeleton implementing the "Class" feature from Inspire — a multi-tenant school management platform used by 50+ Australian schools. Portfolio project for Alessandro Pangrazio (SRA Information Technology, Australia).
 
 Full background: see `docs/project-overview.md`
 
@@ -27,35 +27,38 @@ Class-Functionality/        git root
 
 ## All Architecture Decisions — Final
 
-| Decision | Choice |
-|---|---|
-| Backend | Laravel 11 JSON API |
-| Frontend | Standalone Vue 3 SPA — NOT Inertia |
-| Database (local) | MySQL 8 via Docker |
-| Database (production) | MySQL on Railway |
-| Multi-tenancy | stancl/tenancy, single-database mode |
+| Decision              | Choice                                                |
+| --------------------- | ----------------------------------------------------- |
+| Backend               | Laravel 11 JSON API                                   |
+| Frontend              | Standalone Vue 3 SPA — NOT Inertia                    |
+| Database (local)      | MySQL 8 via Docker                                    |
+| Database (production) | MySQL on Railway                                      |
+| Multi-tenancy         | stancl/tenancy, single-database mode                  |
 | Tenant identification | From authenticated user's `tenant_id` — NOT subdomain |
-| Email uniqueness | Globally unique across all tenants |
-| Authentication | Laravel Sanctum Bearer tokens |
-| RBAC | spatie/laravel-permission + Laravel Policies |
-| Soft deletes | SoftDeletes trait (`deleted_at`) |
-| API responses | Dedicated API Resources per shape |
-| Patterns | Service Layer, Repository, Observer, Builder |
-| Components | shadcn-vue (owned, not a package dep) |
-| Styling | Tailwind CSS |
-| DB GUI (local) | SQLTools VS Code extension + MySQL/MariaDB driver |
+| Email uniqueness      | Globally unique across all tenants                    |
+| Authentication        | Laravel Sanctum Bearer tokens                         |
+| RBAC                  | spatie/laravel-permission + Laravel Policies          |
+| Soft deletes          | SoftDeletes trait (`deleted_at`)                      |
+| API responses         | Dedicated API Resources per shape                     |
+| Patterns              | Service Layer, Repository, Observer, Builder          |
+| Components            | shadcn-vue (owned, not a package dep)                 |
+| Styling               | Tailwind CSS                                          |
+| Frontend language     | TypeScript (`<script setup lang="ts">` throughout)    |
+| DB GUI (local)        | SQLTools VS Code extension + MySQL/MariaDB driver     |
 
 ---
 
 ## Scope — What the Application Does and Does NOT Do
 
 **The UI manages:**
+
 - Classes (CRUD + soft delete)
 - Staff assignment to classes (from seeded users)
 - Student enrolment in classes (from seeded students)
 - Student notes including bulk creation
 
 **Seeder-only (no UI, no API endpoints):**
+
 - Creating tenants (schools)
 - Creating users (staff)
 - Creating students

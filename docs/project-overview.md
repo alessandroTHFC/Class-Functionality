@@ -2,7 +2,7 @@
 
 ## What We Are Building
 
-A Laravel 11 SaaS skeleton implementing the "Class" feature from Inspire — a multi-tenant school management platform serving 50+ Australian schools. This is a portfolio project demonstrating Laravel proficiency, AI-first development workflow, and software engineering fundamentals to Beliven, an Italian software studio.
+A Laravel 11 SaaS skeleton implementing the "Class" feature from Inspire — a multi-tenant school management platform serving 50+ Australian schools. This is a portfolio project demonstrating Laravel proficiency, AI-first development workflow, and software engineering fundamentals.
 
 The project is not a 1:1 replication of the original. It is a deliberate architectural improvement — applying patterns that were missing or incorrectly applied the first time.
 
@@ -25,30 +25,30 @@ The project is not a 1:1 replication of the original. It is a deliberate archite
 
 ## What Was Wrong With the Original (Inspire)
 
-| Anti-pattern | Original Behaviour | This Project |
-|---|---|---|
+| Anti-pattern                  | Original Behaviour                                                  | This Project                                           |
+| ----------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------ |
 | Authorization in repositories | `SetSecurityContext()` + `UserHasRole()` called inside repo methods | Auth in Policies only. Repos query data, nothing else. |
-| Dataset params | `?dataset=class-dashboard` switches payload shape on one endpoint | Dedicated API Resources per response shape |
-| Multi-tenancy | `clientId` threaded through every method call manually | Automatic scoping via Stancl middleware |
-| Soft delete | `ClassRowState` FK to a reference table | Standard `deleted_at` timestamp via SoftDeletes trait |
-| Thin service layer | Service mostly delegates straight to repository | Services own all business logic and orchestration |
+| Dataset params                | `?dataset=class-dashboard` switches payload shape on one endpoint   | Dedicated API Resources per response shape             |
+| Multi-tenancy                 | `clientId` threaded through every method call manually              | Automatic scoping via Stancl middleware                |
+| Soft delete                   | `ClassRowState` FK to a reference table                             | Standard `deleted_at` timestamp via SoftDeletes trait  |
+| Thin service layer            | Service mostly delegates straight to repository                     | Services own all business logic and orchestration      |
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology | Package/Version |
-|---|---|---|
-| Backend framework | Laravel 11 | — |
-| Authentication | Laravel Sanctum | `laravel/sanctum` |
-| Multi-tenancy | Tenancy for Laravel | `stancl/tenancy` ^3.x |
-| RBAC | Spatie Laravel Permission | `spatie/laravel-permission` ^6.x |
-| Frontend | Vue 3 SPA | Vite, Vue Router 4, Pinia |
-| HTTP client | Axios | — |
-| Styling | Tailwind CSS | ^3.x |
-| Component library | shadcn-vue | (owned components, not a package dep) |
-| Database (local) | MySQL 8 | Docker |
-| Database (production) | MySQL | Railway managed service |
+| Layer                 | Technology                | Package/Version                       |
+| --------------------- | ------------------------- | ------------------------------------- |
+| Backend framework     | Laravel 11                | —                                     |
+| Authentication        | Laravel Sanctum           | `laravel/sanctum`                     |
+| Multi-tenancy         | Tenancy for Laravel       | `stancl/tenancy` ^3.x                 |
+| RBAC                  | Spatie Laravel Permission | `spatie/laravel-permission` ^6.x      |
+| Frontend              | Vue 3 SPA                 | Vite, Vue Router 4, Pinia             |
+| HTTP client           | Axios                     | —                                     |
+| Styling               | Tailwind CSS              | ^3.x                                  |
+| Component library     | shadcn-vue                | (owned components, not a package dep) |
+| Database (local)      | MySQL 8                   | Docker                                |
+| Database (production) | MySQL                     | Railway managed service               |
 
 ---
 
@@ -107,6 +107,7 @@ Class-Functionality/        (git root)
 ## Scope
 
 ### In Scope
+
 - Class management (CRUD + soft delete)
 - Student enrolment and NCCD data display
 - Staff assignment to classes
@@ -116,6 +117,7 @@ Class-Functionality/        (git root)
 - Demo seeder with realistic data
 
 ### Out of Scope
+
 - Initial Adjustments and intervention strategies
 - File attachments on notes
 - SMS / school management system integration

@@ -63,7 +63,7 @@ frontend/
 
 | Thing | Convention | Example |
 |---|---|---|
-| Page components | PascalCase, descriptive | `ClassDashboard.vue`, `ClassDetail.vue` |
+| Page components | PascalCase, descriptive | `ClassDashboard.vue`, `ClassDetail.vue` — all `.vue` files use `<script setup lang="ts">` |
 | Shared components | PascalCase | `BulkNoteModal.vue`, `StudentPanel.vue` |
 | Composables | camelCase, `use` prefix | `useClasses.js`, `useAuth.js` |
 | Pinia stores | camelCase, `use` prefix | `useClassStore.js`, `useAuthStore.js` |
@@ -134,6 +134,7 @@ frontend/
 
 ## Frontend Rules
 
+- All frontend files use TypeScript (`<script setup lang="ts">`) — no plain `.js` files in `frontend/src/`
 - All API calls are made inside composables or Pinia stores — never directly in page or component files
 - The Axios instance is configured once in `src/lib/axios.js` with the base URL and auth interceptor
 - The auth token is stored in `localStorage` and attached to all requests via an Axios request interceptor
