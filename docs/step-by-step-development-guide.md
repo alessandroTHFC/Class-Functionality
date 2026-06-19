@@ -15,7 +15,7 @@ This is the sequential build roadmap. Each step should be completed and verified
 3. ✅ Start Docker: `docker compose up -d`
 4. ✅ Configure `backend/.env` — set `DB_*` variables to point at Docker MySQL
 5. ✅ Run `php artisan migrate` — confirm the default Laravel tables are created
-6. Connect SQLTools in VS Code to the Docker MySQL instance and confirm you can see the database
+6. ✅ Connect SQLTools in VS Code to the Docker MySQL instance and confirm you can see the database
 7. ✅ Scaffold the Vue project: `npm create vite@latest frontend -- --template vue-ts`
 8. ✅ Confirm both `backend/` and `frontend/` exist under the repo root
 
@@ -39,7 +39,7 @@ This is the sequential build roadmap. Each step should be completed and verified
 **Goal:** Stancl configured for single-database mode with tenant-from-user resolution.
 
 14. ✅ Configure `config/tenancy.php` — removed `DatabaseTenancyBootstrapper` (single-database mode uses `BelongsToTenant` trait, not per-tenant DB switching)
-15. ✅ Enable Spatie teams feature in `config/permission.php` — set `teams => true`, `team_foreign_key => tenant_id`; created follow-up migration to add `tenant_id` to `roles`, `model_has_roles`, `model_has_permissions`
+15. ✅ Enable Spatie teams feature in `config/permission.php` — set `teams => true`, `team_foreign_key => tenant_id`; note: on a fresh `migrate:fresh`, the permission tables migration handles `tenant_id` automatically when teams is enabled in config — no follow-up migration needed
 16. ✅ Create `InitialiseTenantFromUser` middleware in `app/Http/Middleware/`
 17. ✅ Register the middleware alias `tenant` in `bootstrap/app.php`
 18. ✅ Define the `tenant` middleware alias in `bootstrap/app.php` (combined with step 17)
@@ -50,17 +50,17 @@ This is the sequential build roadmap. Each step should be completed and verified
 
 **Goal:** All tables created in the correct order with proper foreign keys.
 
-19. Create migration: `tenants` table (Stancl publishes this — verify it exists)
-20. Create migration: `domains` table (Stancl publishes this — verify it exists)
-21. Create migration: `users` table — add `tenant_id` column, ensure `email` has a global unique index (not scoped)
-22. Create migration: `year_levels` table with `tenant_id`
-23. Create migration: `classes` table with `tenant_id` and `deleted_at`
-24. Create migration: `class_users` pivot table — `class_id`, `user_id`, no `tenant_id` (isolation inherited through class)
-25. Create migration: `class_students` pivot table — `class_id`, `student_id`, no `tenant_id` (isolation inherited through class)
-26. Create migration: `students` table with `tenant_id`, NCCD enum columns, and `deleted_at`
-27. Create migration: `student_notes` table with `tenant_id` and `deleted_at`
-28. Run `php artisan migrate` — verify all tables appear in SQLTools
-29. Publish and run Spatie permission migrations
+19. ✅ Create migration: `tenants` table (Stancl publishes this — verify it exists)
+20. ✅ Create migration: `domains` table (Stancl publishes this — verify it exists)
+21. ✅ Create migration: `users` table — add `tenant_id` column, ensure `email` has a global unique index (not scoped)
+22. ✅ Create migration: `year_levels` table with `tenant_id`
+23. ✅ Create migration: `classes` table with `tenant_id` and `deleted_at`
+24. ✅ Create migration: `class_users` pivot table — `class_id`, `user_id`, no `tenant_id` (isolation inherited through class)
+25. ✅ Create migration: `class_students` pivot table — `class_id`, `student_id`, no `tenant_id` (isolation inherited through class)
+26. ✅ Create migration: `students` table with `tenant_id`, NCCD enum columns, and `deleted_at`
+27. ✅ Create migration: `student_notes` table with `tenant_id` and `deleted_at`
+28. ✅ Run `php artisan migrate:fresh` — all 13 migrations ran cleanly; all tables verified
+29. ✅ Spatie permission migrations — published and run in Phase 2; `tenant_id` column included automatically on fresh migrate when teams is enabled in config
 
 ---
 

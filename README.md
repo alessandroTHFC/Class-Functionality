@@ -11,6 +11,7 @@ I chose to build a class management application because it's functionality I've 
 ClassHub is a multi-tenant web application used by school staff to manage classes, student enrolments, and student notes.
 
 **Staff can:**
+
 - View and search a paginated list of classes across year levels
 - Create and edit classes — including assigning teachers and enrolling students in a single save operation
 - View per-class student detail including NCCD disability support levels
@@ -23,17 +24,17 @@ There is no admin screen, no user management UI, no student creation screen. Tea
 
 ## Tech Stack
 
-| Layer | Choice |
-|---|---|
-| Backend | Laravel 13 JSON API |
-| Frontend | Vue 3 SPA (TypeScript, Composition API) |
-| Auth | Laravel Sanctum — Bearer tokens |
-| Multi-tenancy | stancl/tenancy — single-database mode |
-| RBAC | spatie/laravel-permission with teams |
-| Database | MySQL 8 |
-| Styling | Tailwind CSS + shadcn-vue |
-| State | Pinia |
-| Testing | Pest PHP |
+| Layer         | Choice                                  |
+| ------------- | --------------------------------------- |
+| Backend       | Laravel 13 JSON API                     |
+| Frontend      | Vue 3 SPA (TypeScript, Composition API) |
+| Auth          | Laravel Sanctum — Bearer tokens         |
+| Multi-tenancy | stancl/tenancy — single-database mode   |
+| RBAC          | spatie/laravel-permission with teams    |
+| Database      | MySQL 8                                 |
+| Styling       | Tailwind CSS + shadcn-vue               |
+| State         | Pinia                                   |
+| Testing       | Pest PHP                                |
 
 I chose a standalone Vue SPA over Inertia because using Laravel as a pure JSON API means the API contract has to be properly defined rather than implied by server-side rendering. It also mirrors how I'd build something deployed across separate services.
 
@@ -161,15 +162,15 @@ Eloquent implements the Active Record pattern — each model represents a table 
 
 ### SOLID Principles
 
-These aren't patterns — they're rules for class design. They explain *why* the patterns above are structured the way they are.
+These aren't patterns — they're rules for class design. They explain _why_ the patterns above are structured the way they are.
 
-| Principle | How it appears in this project |
-|---|---|
+| Principle                     | How it appears in this project                                                                                                                    |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **S** — Single Responsibility | Controller handles HTTP. Service handles business logic. Repository handles data access. Form Requests handle validation. Each class has one job. |
-| **O** — Open/Closed | The Observer pattern means new reactions to events can be added as new listeners without modifying the service that fires them. |
-| **L** — Liskov Substitution | Any class implementing the same repository interface can replace another without the service knowing or breaking. |
-| **I** — Interface Segregation | Repositories implement focused interfaces rather than one large interface with methods most implementations wouldn't use. |
-| **D** — Dependency Inversion | Services receive repositories via constructor injection. The container wires the dependency — services don't instantiate their own dependencies. |
+| **O** — Open/Closed           | The Observer pattern means new reactions to events can be added as new listeners without modifying the service that fires them.                   |
+| **L** — Liskov Substitution   | Any class implementing the same repository interface can replace another without the service knowing or breaking.                                 |
+| **I** — Interface Segregation | Repositories implement focused interfaces rather than one large interface with methods most implementations wouldn't use.                         |
+| **D** — Dependency Inversion  | Services receive repositories via constructor injection. The container wires the dependency — services don't instantiate their own dependencies.  |
 
 ---
 
@@ -220,6 +221,150 @@ npm run dev
 
 ---
 
+## Laravel Concepts Worth Knowing
+
+Things I learned or clarified while building this. Each entry is a Laravel convention or behaviour that wasn't obvious to me upfront — recorded here so I don't have to rediscover them.
+
+---
+
+### Query Scopes — defined with `scope`, called without it
+
+You define a scope with the `scope` prefix, but you call it without it. Laravel strips it automatically and injects the `$query` argument — you only pass your own parameters. This is like creating a reusable LINQ filter, it shortens the syntax and makes it easier to read.
+
+```php
+// Definition on the model
+public function scopeSearch(Builder $query, string $term): Builder
+{
+    return $query->where('name', 'like', "%{$term}%");
+}
+
+// Usage in a repository — called as ->search(), not ->scopeSearch()
+SchoolClass::query()
+    ->search('maths')
+    ->assignedTo($user)
+    ->paginate(15);
+```
+
+The reason for the prefix is that it signals to Laravel's internals that this is a scope — so it can inject `$query`, chain correctly, and not conflict with Eloquent's own methods.
+
+---
+
+### `$table` — overriding the guessed table name
+
+Laravel derives the table name from the model class name: StudlyCase → snake_case → plural. `SchoolClass` would resolve to `school_classes`. Our table is `classes`, so we override it explicitly.
+
+```php
+class SchoolClass extends Model
+{
+    protected $table = 'classes';
+}
+```
+
+Without this, every query would hit `school_classes` and fail silently at runtime.
+
+---
+
+### `$fillable` — mass assignment protection
+
+Any column you want to set via `Model::create([...])` or `$model->fill([...])` must be listed in `$fillable`. Without it, Laravel silently ignores the field — no error, the value just doesn't get saved.
+
+```php
+protected $fillable = ['tenant_id', 'name', 'year_level_id', 'created_by_user_id'];
+```
+
+This is a security boundary. If a user sends an unexpected field through an API request and it isn't in `$fillable`, it can't end up written to the database regardless of what the controller does.
+
+---
+
+### `$casts` — automatic type conversion
+
+Tells Laravel to convert a raw database value to a PHP type on read, and back on write. You never manually convert — it just works.
+
+```php
+protected $casts = [
+    'date_of_birth'                       => 'date',
+    'primary_disability_level_formalised' => 'boolean',
+    'nccd_level'                          => NccdLevelEnum::class,
+    'nccd_category'                       => NccdCategoryEnum::class,
+];
+```
+
+With the enum cast, `$student->nccd_level` returns an `NccdLevelEnum` instance rather than a raw string. Saving works the same way — assign the enum value, Laravel writes the string. This prevents invalid values from being stored and gives IDE autocompletion on enum cases.
+
+---
+
+### Accessors and `$appends` — computed attributes
+
+An accessor is a virtual attribute that doesn't exist as a database column. Laravel recognises the `get{Name}Attribute()` naming convention and makes it accessible as a property.
+
+```php
+protected $appends = ['full_name'];
+
+public function getFullNameAttribute(): string
+{
+    return "{$this->given_name} {$this->family_name}";
+}
+```
+
+`$student->full_name` works as a regular property. Without `$appends`, the attribute is accessible in PHP but won't appear in JSON responses — adding it to `$appends` tells Laravel to include it every time the model is serialised.
+
+---
+
+### Relationship naming — singular vs plural
+
+Laravel doesn't enforce this, but the convention is consistent across the ecosystem:
+
+- `belongsTo` and `hasOne` → **singular**: `yearLevel()`, `createdBy()`, `student()`
+- `hasMany` and `belongsToMany` → **plural**: `classes()`, `students()`, `notes()`
+
+It reads naturally: `$class->students` (many things) vs `$student->yearLevel` (one thing). Deviating from it makes the codebase harder to read.
+
+---
+
+### Custom FK names — the second argument on relationships
+
+When a foreign key doesn't follow Laravel's default convention (`{model}_id`), you pass the column name as the second argument.
+
+```php
+// FK column is created_by_user_id, not user_id
+public function createdBy(): BelongsTo
+{
+    return $this->belongsTo(User::class, 'created_by_user_id');
+}
+
+// Relationship is named 'author' but FK column is user_id
+public function author(): BelongsTo
+{
+    return $this->belongsTo(User::class, 'user_id');
+}
+```
+
+Without the second argument, Laravel would look for a column named `school_class_id` (or whatever it derives) and find nothing.
+
+---
+
+### `RefreshDatabase` — test isolation without manual cleanup
+
+Adding `use RefreshDatabase` to a test class wraps every test in a database transaction that rolls back after the test completes. The database is always clean at the start of each test — no truncation, no leftover data from a previous run.
+
+```php
+abstract class TestCase extends BaseTestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->tenant = Tenant::factory()->create();
+        tenancy()->initialize($this->tenant);
+    }
+}
+```
+
+The alternative — manually truncating tables or re-seeding — is slow and fragile. `RefreshDatabase` is the standard Laravel testing convention for keeping tests isolated and fast.
+
+---
+
 ## AI-Assisted Development
 
 I used Claude Code throughout this project. This section covers how I structured that workflow, and is an honest account of what I caught, what I pushed back on, and what I took away from the experience.
@@ -231,18 +376,18 @@ Before any code was written, I built a full specification package covering every
 
 The documentation lives in the `docs/` folder:
 
-| File | Contents |
-|---|---|
-| `project-overview.md` | Scope, goals, what the application does and doesn't do |
-| `models.md` | Every model, fields, relationships, and traits |
-| `api-contracts.md` | Every endpoint — request shape, validation, response shape |
-| `architecture.md` | Full controller → service → repository flow with method signatures |
-| `rbac.md` | Roles, permissions matrix, policy rules |
-| `tenancy.md` | How single-database tenancy is implemented |
-| `frontend-design.md` | Component tree, loading states, action feedback, role-based UI |
-| `design-constraints.md` | Naming conventions, layer rules, what belongs where |
-| `testing.md` | Test cases per endpoint, factory setup, Pest conventions |
-| `step-by-step-development-guide.md` | Sequenced build roadmap with completion flags |
+| File                                | Contents                                                           |
+| ----------------------------------- | ------------------------------------------------------------------ |
+| `project-overview.md`               | Scope, goals, what the application does and doesn't do             |
+| `models.md`                         | Every model, fields, relationships, and traits                     |
+| `api-contracts.md`                  | Every endpoint — request shape, validation, response shape         |
+| `architecture.md`                   | Full controller → service → repository flow with method signatures |
+| `rbac.md`                           | Roles, permissions matrix, policy rules                            |
+| `tenancy.md`                        | How single-database tenancy is implemented                         |
+| `frontend-design.md`                | Component tree, loading states, action feedback, role-based UI     |
+| `design-constraints.md`             | Naming conventions, layer rules, what belongs where                |
+| `testing.md`                        | Test cases per endpoint, factory setup, Pest conventions           |
+| `step-by-step-development-guide.md` | Sequenced build roadmap with completion flags                      |
 
 **Step 2 — AI-generated development guide.**
 Once the documentation was in place, I used the AI to generate a detailed step-by-step development guide broken into phases, with individual numbered tasks within each phase. This created a clear roadmap where progress could be tracked and work was naturally segregated — each phase had a defined goal and a defined set of deliverables before moving to the next.
@@ -265,13 +410,14 @@ The AI was required to summarise the upcoming phase in plain English before any 
 **On architecture decisions.** The initial tenancy approach used subdomain-based tenant resolution. I redirected it to user-based resolution because subdomain routing would have added deployment complexity that wasn't justified at this scale.
 
 **Before approving code changes.** Several times I rejected a change mid-execution and asked for a plain-English explanation before proceeding:
-- *"Before continuing with this code change can you explain what the code you are changing does in plain english"* — before a migration patching the Spatie permission tables
-- *"Before you make that change explain why it wasnt registered and what the problem this would have caused is"* — before a provider registration fix
-- *"Can you break down each point one at a time and await a decision"* — when working through the 14 documentation inconsistencies
+
+- _"Before continuing with this code change can you explain what the code you are changing does in plain english"_ — before a migration patching the Spatie permission tables
+- _"Before you make that change explain why it wasnt registered and what the problem this would have caused is"_ — before a provider registration fix
+- _"Can you break down each point one at a time and await a decision"_ — when working through the 14 documentation inconsistencies
 
 **Catching what the AI didn't flag.** When `php artisan tenancy:install` published the `TenancyServiceProvider`, it contained multi-database tenancy code that would have crashed on Laravel 11 and attempted to create per-tenant databases we don't use. I noticed it because the file was open in my IDE and the error was visible. That led to finding two further issues — the provider wasn't registered with the application at all, and a route file was referencing middleware we'd already removed. The AI published all three files without flagging any of them as problems. Reviewing published files rather than just accepting them was the right instinct.
 
-**Asking conceptual questions throughout.** Rather than accepting output, I regularly asked things like *"where is the auth:sanctum middleware?"*, *"do we have seeded data in the tenants table?"*, and *"what is the summary object referring to?"*. These were how I built a mental model of what was actually being built — not how someone rubber-stamps AI output.
+**Asking conceptual questions throughout.** Rather than accepting output, I regularly asked things like _"where is the auth:sanctum middleware?"_, _"do we have seeded data in the tenants table?"_, and _"what is the summary object referring to?"_. These were how I built a mental model of what was actually being built — not how someone rubber-stamps AI output.
 
 ---
 
