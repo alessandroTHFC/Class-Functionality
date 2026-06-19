@@ -215,7 +215,6 @@ protected $casts = [
 | user_id | bigint | No | FK → users.id (author) |
 | note_text | text | No | |
 | note_date | date | No | |
-| note_type | string | Yes | |
 | confidentiality_level | string | Yes | |
 | created_at | timestamp | Yes | |
 | updated_at | timestamp | Yes | |

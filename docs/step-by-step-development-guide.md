@@ -276,7 +276,6 @@ export interface StudentNote {
   id: number
   note_text: string
   note_date: string
-  note_type: string | null
   confidentiality_level: string | null
   author: { id: number; name: string }
   class: { id: number; name: string }
@@ -296,7 +295,6 @@ export interface StoreNotePayload {
   class_id: number
   note_text: string
   note_date: string
-  note_type: string | null
   confidentiality_level: string | null
 }
 ```

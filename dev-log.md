@@ -116,3 +116,23 @@ A record of each development phase: what was built, what decisions were made, wh
 
 ---
 
+## Phase 4 — Database Migrations
+
+**Completed.**
+
+**What was built:**
+- `0001_01_01_000000_create_users_table` modified — added `tenant_id` (string, FK to tenants) and `softDeletes()` to the default Laravel users migration
+- `2026_06_19_100000_create_year_levels_table` — `tenant_id`, `description`, `sort_order`, timestamps
+- `2026_06_19_100001_create_students_table` — `tenant_id`, name fields, `date_of_birth`, `year_level_id` (nullable FK), NCCD columns, `deleted_at`
+- `2026_06_19_100002_create_classes_table` — `tenant_id`, `name`, `year_level_id` (nullable FK), `created_by_user_id` (FK to users), `deleted_at`
+- `2026_06_19_100003_create_class_users_table` — pivot: `class_id`, `user_id`, cascade delete on both FKs, no `tenant_id`
+- `2026_06_19_100004_create_class_students_table` — pivot: `class_id`, `student_id`, cascade delete on both FKs, no `tenant_id`
+- `2026_06_19_100005_create_student_notes_table` — `tenant_id`, `student_id`, `class_id`, `user_id`, `note_text`, `note_date`, `confidentiality_level`, `deleted_at`
+- `php artisan migrate:fresh` ran — all 13 migrations completed successfully
+
+**Notable:**
+- `add_tenant_id_to_permission_tables` migration deleted — it was a patch created in Phase 3 to add the Spatie teams `tenant_id` column after the initial migration had already run without it. On a fresh database with teams already enabled in config, the permission tables migration generates the column automatically. The patch migration caused a "duplicate column" error on `migrate:fresh` and was no longer needed.
+- **`note_type` field removed** — documented in models, API contracts, frontend design, and the dev guide. User identified that there is no UI functionality to select a note type, making the field purposeless at this stage. Removed from the `student_notes` migration and all documentation before running migrate.
+
+---
+

@@ -335,7 +335,6 @@ List notes for a student, optionally scoped to a class.
       "id": 1,
       "note_text": "Bart was particularly engaged today.",
       "note_date": "2026-06-16",
-      "note_type": null,
       "confidentiality_level": null,
       "author": { "id": 1, "name": "Jane Smith" },
       "class": { "id": 1, "name": "Year 9 Science" },
@@ -361,7 +360,6 @@ Create a note for one or more students (bulk note creation). If `student_ids` co
   "class_id": 1,
   "note_text": "All three students completed the assessment successfully.",
   "note_date": "2026-06-16",
-  "note_type": null,
   "confidentiality_level": null
 }
 ```
@@ -374,7 +372,6 @@ Create a note for one or more students (bulk note creation). If `student_ids` co
 | class_id | required, integer, exists:classes,id |
 | note_text | required, string, max:5000 |
 | note_date | required, date |
-| note_type | nullable, string, max:100 |
 | confidentiality_level | nullable, string, max:100 |
 
 **Response 201**

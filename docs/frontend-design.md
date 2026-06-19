@@ -426,7 +426,6 @@ Timeline layout — not a table.
 **Structure:**
 - Staff initials avatar (teal tint) + author name (bold) + relative timestamp ("2 hours ago")
 - Note body text
-- Tag badge (`note_type` field value, if present)
 - Bookmark icon (decorative — no bookmark feature)
 - More actions menu (DropdownMenu — included for future use, no actions for MVP)
 
