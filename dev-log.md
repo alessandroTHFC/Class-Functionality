@@ -160,6 +160,27 @@ A record of each development phase: what was built, what decisions were made, wh
 
 ---
 
+## Phase 7 — Authentication
+
+**Completed.**
+
+**What was built:**
+- `app/Http/Requests/LoginRequest.php` — validates `email` (required, email) and `password` (required, string)
+- `app/Http/Resources/AuthUserResource.php` — returns `id`, `name`, `email`, `roles` (from Spatie `getRoleNames()`), and `tenant` (via `whenLoaded`)
+- `app/Services/AuthService.php` — `login()` uses `Auth::attempt()` then `createToken()`; throws `ValidationException` with status 401 on bad credentials; `logout()` calls `currentAccessToken()->delete()`
+- `app/Http/Controllers/AuthController.php` — thin; injects `AuthService` via constructor; three methods: `login`, `logout`, `user`
+- `routes/api.php` — `POST /login` is public; `POST /logout` behind `auth:sanctum`; `GET /user` behind `auth:sanctum` + `tenant`
+- `tests/Feature/AuthTest.php` — 6 tests covering: valid login, wrong password (401), missing fields (422), token revocation, authenticated user response, unauthenticated access (401)
+
+**Notable — five errors resolved:**
+- **`protected $tenant` inaccessible in Pest closures** — Pest test closures run outside the class scope, so `protected` properties on `TestCase` can't be accessed via `test()->tenant`. Fixed by changing `protected Tenant $tenant` to `public Tenant $tenant` in `TestCase.php`.
+- **`createToken()` undefined on User** — the `HasApiTokens` Sanctum trait was missing from `User`. Sanctum's `createToken()` method lives on this trait. Added `HasApiTokens` alongside the other traits.
+- **Roles not found in tests** — `RolesAndPermissionsSeeder` is not run automatically in tests; `RefreshDatabase` wipes the DB clean each test. Added `app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id)` and `$this->seed(RolesAndPermissionsSeeder::class)` to `TestCase::setUp()` so roles exist and are scoped correctly for every test.
+- **`User` missing `tenant()` relationship** — `GET /api/user` eager-loads the tenant via `$user->load('tenant')` in the controller. The relationship didn't exist on the model. Added `public function tenant(): BelongsTo` returning `$this->belongsTo(Tenant::class)`.
+- **Logout second-request returned 200 after token revocation** — The `AuthManager` caches guard instances (and the resolved `$user`) for the lifetime of the application instance. In tests, the same app is reused across all HTTP calls within a test, so the Sanctum guard still held the authenticated user from the logout request. Switched from making a second HTTP request to using `assertDatabaseMissing('personal_access_tokens', ['id' => $tokenId])` which bypasses the guard cache entirely and directly verifies the record was deleted.
+
+---
+
 ## Phase 5 — Eloquent Models, Enums, Factories, and Test Setup
 
 **Completed.**

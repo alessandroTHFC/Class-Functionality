@@ -182,6 +182,24 @@ The tenant is resolved from the authenticated user's `tenant_id` after login, no
 
 Role assignments are scoped per tenant using Spatie's teams feature, with `team_foreign_key = tenant_id`. A teacher at School A and a teacher at School B are entirely independent role assignments.
 
+### Known extension point — multi-school organisations
+
+The current model is intentionally flat: one tenant equals one school. This covers the majority of use cases and keeps the architecture simple.
+
+A natural next requirement would be supporting school groups — a diocese or education network that manages multiple schools under one account. This would introduce a `School` model sitting between the tenant and everything else:
+
+```
+Tenant (Diocese of Melbourne)
+  └── School (St Mary's Primary)
+  └── School (St Joseph's College)
+        └── Class → Student → Notes
+        └── User
+```
+
+Every tenant-scoped table would gain a `school_id` column. Users, students, and classes would each belong to a specific school, while the tenant boundary still governs data isolation between organisations. Cross-school reporting (NCCD rollups across the diocese) would be possible because all schools share the same tenant.
+
+This was deliberately not implemented here. The scope is single-school tenants and adding the layer now would mean building for a requirement that doesn't exist in this project. The architecture doesn't prevent it — the `BelongsToTenant` trait and middleware pattern extend cleanly — but the right time to add it is when there's an actual requirement driving it, not speculatively.
+
 ---
 
 ## Project Structure

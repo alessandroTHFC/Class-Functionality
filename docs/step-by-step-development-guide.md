@@ -108,13 +108,15 @@ This is the sequential build roadmap. Each step should be completed and verified
 
 **Goal:** Login and logout endpoints working and covered by Pest tests.
 
-55. Create `AuthController` with `login`, `logout`, and `user` methods
-56. Register auth routes in `routes/api.php` (public — no middleware)
-57. Manually verify `POST /api/login` with a seeded user's credentials returns a token
-58. Manually verify `GET /api/user` with the token returns the correct user and tenant
-59. Manually verify `POST /api/logout` revokes the token
-60. Write `tests/Feature/AuthTest.php` covering all cases in `docs/testing.md`
-61. Run `php artisan test --filter AuthTest` — all tests pass
+55. ✅ Create `LoginRequest` form request — validates `email` (required, email) and `password` (required, string)
+56. ✅ Create `AuthUserResource` — shapes the user response with `id`, `name`, `email`, `roles`, and `tenant` (loaded via `whenLoaded`)
+57. ✅ Create `AuthService` — owns `login()` (calls `Auth::attempt()`, issues Sanctum token) and `logout()` (deletes `currentAccessToken()`)
+58. ✅ Create `AuthController` — thin controller; `login`, `logout`, `user` methods; injects `AuthService`
+59. ✅ Add `tenant()` `belongsTo` relationship to `User` model (required for `GET /api/user` to eager-load tenant)
+60. ✅ Add `HasApiTokens` Sanctum trait to `User` model (required for `createToken()`)
+61. ✅ Register auth routes in `routes/api.php` — `POST /login` public; `POST /logout` behind `auth:sanctum`; `GET /user` behind `auth:sanctum` + `tenant`
+62. ✅ Write `tests/Feature/AuthTest.php` — 6 tests, 22 assertions, all passing
+63. ✅ Run `php artisan test tests/Feature/AuthTest.php` — all 6 tests pass
 
 ---
 
