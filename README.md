@@ -417,6 +417,8 @@ The AI was required to summarise the upcoming phase in plain English before any 
 
 **Catching what the AI didn't flag.** When `php artisan tenancy:install` published the `TenancyServiceProvider`, it contained multi-database tenancy code that would have crashed on Laravel 11 and attempted to create per-tenant databases we don't use. I noticed it because the file was open in my IDE and the error was visible. That led to finding two further issues — the provider wasn't registered with the application at all, and a route file was referencing middleware we'd already removed. The AI published all three files without flagging any of them as problems. Reviewing published files rather than just accepting them was the right instinct.
 
+**Catching unnecessary code before it was written.** During Phase 5, the AI was about to add `tenant_id` to the `UserFactory` definition. I questioned why it wasn't visible in the diff, which prompted the explanation that `BelongsToTenant` sets `tenant_id` automatically from the tenancy context via an Eloquent lifecycle event — so hardcoding it in the factory would have been redundant at best, and misleading at worst. The factory was left as-is. Asking "I can't see the difference in that code" before accepting the change was what caught it.
+
 **Asking conceptual questions throughout.** Rather than accepting output, I regularly asked things like _"where is the auth:sanctum middleware?"_, _"do we have seeded data in the tenants table?"_, and _"what is the summary object referring to?"_. These were how I built a mental model of what was actually being built — not how someone rubber-stamps AI output.
 
 ---

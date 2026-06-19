@@ -136,3 +136,29 @@ A record of each development phase: what was built, what decisions were made, wh
 
 ---
 
+## Phase 5 — Eloquent Models, Enums, Factories, and Test Setup
+
+**Completed.**
+
+**What was built:**
+- `app/Enums/NccdLevelEnum.php` and `NccdCategoryEnum.php` — PHP backed string enums used in `Student` model casts
+- `app/Models/User.php` — updated to add `BelongsToTenant`, `HasRoles` (Spatie), `SoftDeletes`; replaced PHP 13-style attribute syntax (`#[Fillable]`) with traditional `$fillable` and `$hidden` properties; added `assignedClasses()`, `createdClasses()`, `notes()` relationships
+- `app/Models/YearLevel.php` — `BelongsToTenant`, `classes()`, `students()` relationships
+- `app/Models/SchoolClass.php` — `BelongsToTenant`, `SoftDeletes`, `$table = 'classes'` override, full relationship set, `scopeSearch()` and `scopeAssignedTo()` query scopes
+- `app/Models/ClassUser.php` and `ClassStudent.php` — minimal pivot models, no traits
+- `app/Models/Student.php` — `BelongsToTenant`, `SoftDeletes`, NCCD enum casts, `full_name` accessor, `$appends`
+- `app/Models/StudentNote.php` — `BelongsToTenant`, `SoftDeletes`, `author()` and `schoolClass()` named relationships
+- `app/Models/Tenant.php` — extends Stancl's base Tenant model, adds `domains()` relationship
+- `config/tenancy.php` — `tenant_model` updated from Stancl's class to `App\Models\Tenant`
+- `tests/TestCase.php` — `RefreshDatabase`, tenant creation and initialisation in `setUp()`, `tenancy()->end()` in `tearDown()`
+- `tests/Pest.php` — created; `uses(TestCase::class)->in('Feature')`, `actingAsRole()` global helper
+- `database/factories/` — `TenantFactory`, `YearLevelFactory`, `SchoolClassFactory`, `StudentFactory`, `StudentNoteFactory` created; `UserFactory` kept as-is
+
+**Notable:**
+- **`class()` relationship renamed to `schoolClass()`** on `StudentNote` — `class` is a reserved word in PHP and cannot be used as a method name. Updated `docs/models.md` to reflect this.
+- **`config/tenancy.php` update required** — Stancl's config defaults to its own Tenant model. Creating a custom `App\Models\Tenant` required explicitly pointing the config to it, otherwise Stancl would continue resolving tenants from its own model and the factory/relationship wouldn't apply.
+- **`tenant_id` omitted from `UserFactory`** — `BelongsToTenant` sets `tenant_id` automatically via Eloquent's `creating` event from the active tenancy context. Tests that need it explicitly pass it as `User::factory()->create(['tenant_id' => test()->tenant->id])`.
+- Application boots cleanly after all changes — confirmed via `php artisan about`.
+
+---
+

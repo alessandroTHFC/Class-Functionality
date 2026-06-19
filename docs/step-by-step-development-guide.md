@@ -68,24 +68,24 @@ This is the sequential build roadmap. Each step should be completed and verified
 
 **Goal:** All models defined with relationships, traits, and casts. Factories and Pest test helpers ready so tests can be written from Phase 7 onwards.
 
-30. Create `app/Enums/NccdLevelEnum.php`
-31. Create `app/Enums/NccdCategoryEnum.php`
-32. Create/update `User` model — add `BelongsToTenant`, `HasRoles`, `SoftDeletes`, relationships
-33. Create `YearLevel` model — add `BelongsToTenant`, relationships
-34. Create `SchoolClass` model — add `BelongsToTenant`, `SoftDeletes`, relationships, scopes
-35. Create `ClassUser` model — pivot only, no traits
-36. Create `ClassStudent` model — pivot only, no traits
-37. Create `Student` model — add `BelongsToTenant`, `SoftDeletes`, relationships, casts, `full_name` accessor
-38. Create `StudentNote` model — add `BelongsToTenant`, `SoftDeletes`, relationships, casts
-39. Create `Tenant` model — add `domains()` relationship
-40. Set up `tests/TestCase.php` — base class with tenant initialisation/teardown and `RefreshDatabase` (see `docs/testing.md`)
-41. Configure `tests/Pest.php` — add `actingAsRole()` helper function
-42. Create `TenantFactory` — generates a tenant record; required by the TestCase base class
-43. Create `UserFactory` — generates realistic staff users
-44. Create `SchoolClassFactory` — generates class records
-45. Create `StudentFactory` — generates students with random NCCD data
-46. Create `StudentNoteFactory` — generates note records
-47. Create `YearLevelFactory` — generates year level records
+30. ✅ Create `app/Enums/NccdLevelEnum.php`
+31. ✅ Create `app/Enums/NccdCategoryEnum.php`
+32. ✅ Create/update `User` model — add `BelongsToTenant`, `HasRoles`, `SoftDeletes`, relationships
+33. ✅ Create `YearLevel` model — add `BelongsToTenant`, relationships
+34. ✅ Create `SchoolClass` model — add `BelongsToTenant`, `SoftDeletes`, relationships, scopes
+35. ✅ Create `ClassUser` model — pivot only, no traits
+36. ✅ Create `ClassStudent` model — pivot only, no traits
+37. ✅ Create `Student` model — add `BelongsToTenant`, `SoftDeletes`, relationships, casts, `full_name` accessor
+38. ✅ Create `StudentNote` model — add `BelongsToTenant`, `SoftDeletes`, relationships, casts
+39. ✅ Create `Tenant` model — add `domains()` relationship; update `config/tenancy.php` to point to `App\Models\Tenant`
+40. ✅ Set up `tests/TestCase.php` — base class with tenant initialisation/teardown and `RefreshDatabase`
+41. ✅ Configure `tests/Pest.php` — add `actingAsRole()` helper function
+42. ✅ Create `TenantFactory` — generates a tenant record; required by the TestCase base class
+43. ✅ Create `UserFactory` — existing factory kept; `tenant_id` omitted (set automatically by `BelongsToTenant` from tenancy context)
+44. ✅ Create `SchoolClassFactory` — generates class records
+45. ✅ Create `StudentFactory` — generates students with random NCCD data
+46. ✅ Create `StudentNoteFactory` — generates note records
+47. ✅ Create `YearLevelFactory` — generates year level records
 
 ---
 

@@ -222,7 +222,7 @@ protected $casts = [
 
 **Relationships**
 - `student()` → belongsTo `Student`
-- `class()` → belongsTo `SchoolClass`
+- `schoolClass()` → belongsTo `SchoolClass` (FK: `class_id` — named `schoolClass()` because `class` is a reserved word in PHP)
 - `author()` → belongsTo `User` (FK: `user_id`)
 
 **Traits:** `SoftDeletes`, `BelongsToTenant`
