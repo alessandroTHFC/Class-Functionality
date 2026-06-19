@@ -93,7 +93,7 @@ $permissions = [
 ];
 
 foreach ($permissions as $permission) {
-    Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'sanctum']);
+    Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
 }
 
 // Roles and their assigned permissions
@@ -108,7 +108,7 @@ $rolePermissions = [
 ];
 
 foreach ($rolePermissions as $roleName => $perms) {
-    $role = Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'sanctum']);
+    $role = Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
     $role->syncPermissions($perms);
 }
 ```

@@ -28,7 +28,7 @@ This is the sequential build roadmap. Each step should be completed and verified
 9. ✅ Install Sanctum: `composer require laravel/sanctum` → run `php artisan install:api` (Laravel 13 method — also creates `routes/api.php`)
 10. ✅ Install Stancl Tenancy: `composer require stancl/tenancy` → run `php artisan tenancy:install` (publishes config + migrations)
 11. ✅ Install Spatie Permission: `composer require spatie/laravel-permission` → run `php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider"`
-11a. ✅ Install Pest PHP: `composer require pestphp/pest --dev --with-all-dependencies` (not shipped by default in this scaffold)
+    11a. ✅ Install Pest PHP: `composer require pestphp/pest --dev --with-all-dependencies` (not shipped by default in this scaffold)
 12. ✅ Configure Sanctum guard in `config/auth.php` — set API guard to use Sanctum
 13. ✅ Configure CORS in `config/cors.php` — allow requests from the Vue dev server origin (`http://localhost:5173`)
 
@@ -129,12 +129,12 @@ This is the sequential build roadmap. Each step should be completed and verified
 66. Create `StoreClassRequest` and `UpdateClassRequest` in `app/Http/Requests/`
 67. Create `ClassListResource` and `ClassDetailResource` in `app/Resources/`
 68. Create `ClassStudentResource` and `UserResource` in `app/Resources/`
-68a. Create `YearLevelResource` in `app/Resources/`
+    68a. Create `YearLevelResource` in `app/Resources/`
 69. Create `ClassController` in `app/Http/Controllers/`
 70. Register class routes in `routes/api.php` under the `tenant` middleware group
 71. Create `ClassObserver` and register it in `AppServiceProvider`
-71a. Create `YearLevelController` with a single `index` method — returns all year levels for the tenant as a plain resource collection
-71b. Register `GET /api/year_levels` route in `routes/api.php` under the `tenant` middleware group
+    71a. Create `YearLevelController` with a single `index` method — returns all year levels for the tenant as a plain resource collection
+    71b. Register `GET /api/year_levels` route in `routes/api.php` under the `tenant` middleware group
 72. Manually verify: GET /classes, GET /year_levels, POST /classes, GET /classes/{id}, PUT /classes/{id}, DELETE /classes/{id}
 73. Manually verify: PUT /classes/{id} with updated user_ids — confirm sync removes unsubmitted users and adds new ones
 74. Manually verify: DELETE /classes/{id}/students/{studentId}
@@ -175,127 +175,127 @@ This is the sequential build roadmap. Each step should be completed and verified
 ```ts
 // Auth
 export interface AuthUser {
-  id: number
-  name: string
-  email: string
-  roles: string[]
-  tenant: { id: string; name: string }
+  id: number;
+  name: string;
+  email: string;
+  roles: string[];
+  tenant: { id: string; name: string };
 }
 
 export interface LoginResponse {
-  token: string
-  user: Pick<AuthUser, 'id' | 'name' | 'email' | 'roles'>
+  token: string;
+  user: Pick<AuthUser, "id" | "name" | "email" | "roles">;
 }
 
 // Shared primitives
 export interface YearLevel {
-  id: number
-  description: string
-  sort_order?: number
+  id: number;
+  description: string;
+  sort_order?: number;
 }
 
 export interface UserSummary {
-  id: number
-  name: string
-  roles: string[]
+  id: number;
+  name: string;
+  roles: string[];
 }
 
 // Pagination
 export interface PaginatedMeta {
-  current_page: number
-  last_page: number
-  per_page: number
-  total: number
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
 }
 
 export interface PaginatedResponse<T> {
-  data: T[]
-  meta: PaginatedMeta
+  data: T[];
+  meta: PaginatedMeta;
 }
 
 // Classes — list
 export interface ClassSummary {
-  total_students: number
-  teachers_assigned: number
+  total_students: number;
+  teachers_assigned: number;
 }
 
 export interface ClassListMeta extends PaginatedMeta {
-  summary: ClassSummary
+  summary: ClassSummary;
 }
 
 export interface ClassListItem {
-  id: number
-  name: string
-  year_level: YearLevel | null
-  created_by: { id: number; name: string }
-  assigned_users: UserSummary[]
-  student_count: number
+  id: number;
+  name: string;
+  year_level: YearLevel | null;
+  created_by: { id: number; name: string };
+  assigned_users: UserSummary[];
+  student_count: number;
 }
 
 // Classes — detail
 export interface NccdSummary {
-  QDTP: number
-  Supplementary: number
-  Substantial: number
-  Extensive: number
+  QDTP: number;
+  Supplementary: number;
+  Substantial: number;
+  Extensive: number;
 }
 
 export interface StudentDetail {
-  id: number
-  full_name: string
-  given_name: string
-  family_name: string
-  year_level: YearLevel | null
-  nccd_level: string | null
-  nccd_category: string | null
-  primary_disability: string | null
-  primary_disability_level_formalised: boolean
+  id: number;
+  full_name: string;
+  given_name: string;
+  family_name: string;
+  year_level: YearLevel | null;
+  nccd_level: string | null;
+  nccd_category: string | null;
+  primary_disability: string | null;
+  primary_disability_level_formalised: boolean;
 }
 
 export interface ClassDetail {
-  id: number
-  name: string
-  year_level: YearLevel | null
-  created_by: { id: number; name: string }
-  assigned_users: UserSummary[]
-  nccd_summary: NccdSummary
-  students: StudentDetail[]
+  id: number;
+  name: string;
+  year_level: YearLevel | null;
+  created_by: { id: number; name: string };
+  assigned_users: UserSummary[];
+  nccd_summary: NccdSummary;
+  students: StudentDetail[];
 }
 
 // Students — picker list
 export interface StudentListItem {
-  id: number
-  full_name: string
-  given_name: string
-  family_name: string
-  year_level: YearLevel | null
+  id: number;
+  full_name: string;
+  given_name: string;
+  family_name: string;
+  year_level: YearLevel | null;
 }
 
 // Notes
 export interface StudentNote {
-  id: number
-  note_text: string
-  note_date: string
-  confidentiality_level: string | null
-  author: { id: number; name: string }
-  class: { id: number; name: string }
-  created_at: string
+  id: number;
+  note_text: string;
+  note_date: string;
+  confidentiality_level: string | null;
+  author: { id: number; name: string };
+  class: { id: number; name: string };
+  created_at: string;
 }
 
 // API request payloads
 export interface StoreClassPayload {
-  name: string
-  year_level_id: number | null
-  user_ids: number[]
-  student_ids: number[]
+  name: string;
+  year_level_id: number | null;
+  user_ids: number[];
+  student_ids: number[];
 }
 
 export interface StoreNotePayload {
-  student_ids: number[]
-  class_id: number
-  note_text: string
-  note_date: string
-  confidentiality_level: string | null
+  student_ids: number[];
+  class_id: number;
+  note_text: string;
+  note_date: string;
+  confidentiality_level: string | null;
 }
 ```
 
@@ -305,8 +305,8 @@ export interface StoreNotePayload {
 97. Create `src/lib/axios.ts` — configure base URL (`http://localhost:8000`) and Bearer token interceptor
 98. Create `src/router/index.ts` — define routes for `/login`, `/classes`, `/classes/:id`
 99. Add router guard — redirect unauthenticated users to `/login`
-100. Create `src/stores/useAuthStore.ts` — handles login, logout, token persistence in localStorage
-101. Create `LoginPage.vue` — email/password form that calls the login endpoint and stores the token
+100.  Create `src/stores/useAuthStore.ts` — handles login, logout, token persistence in localStorage
+101.  Create `LoginPage.vue` — email/password form that calls the login endpoint and stores the token
 
 ---
 
@@ -360,11 +360,3 @@ export interface StoreNotePayload {
 124. Smoke test: login, view classes, create a note
 
 ---
-
-## Phase 15 — Documentation
-
-**Goal:** GitHub repo is presentable to Beliven.
-
-125. Write `README.md` at the repo root — project overview, setup instructions, tech stack, architectural decision rationale
-126. Review and finalise all files in `docs/`
-127. Commit all documentation

@@ -136,6 +136,30 @@ A record of each development phase: what was built, what decisions were made, wh
 
 ---
 
+## Phase 6 — Seeders
+
+**Completed.**
+
+**What was built:**
+- `RolesAndPermissionsSeeder` — creates all 7 permissions and 5 roles (`school-admin`, `coordinator`, `teacher`, `teachers-assistant`, `read-only`) with correct permission assignments; uses `firstOrCreate` so it's idempotent
+- `UserSeeder` — creates one user per role with predictable emails (e.g. `coordinator@springfield.demo`); password `Classhub1234` via `UserFactory`
+- `YearLevelSeeder` — seeds Foundation through Year 12 (13 levels) with `sort_order` 0–12
+- `StudentSeeder` — seeds 30 students with random NCCD data distributed across year levels
+- `ClassSeeder` — seeds 4 named classes with specific staff assignments and enrolled students; uses `sync()` for pivot tables
+- `TenantSeeder` — orchestrates both tenants (Springfield Primary School, Riverside Secondary College) via a private `seedTenant()` helper method; calls `setPermissionsTeamId()` before seeding roles to correctly scope them per tenant
+- `DatabaseSeeder` — replaced Laravel's default stub; calls `TenantSeeder` only
+
+**Notable — three errors resolved:**
+- **Guard mismatch (`web` vs `sanctum`)** — roles were seeded with `guard_name = 'sanctum'` but Spatie looks up roles using the User model's default guard (`web`). Sanctum handles authentication, but Spatie's permission lookups always use the model's declared guard. Changed `guard_name` to `web` in `RolesAndPermissionsSeeder` and `rbac.md`. An attempt to change the default auth guard to `sanctum` was reverted after discovering Spatie's `Guard::getNames()` only scans explicitly declared guards in `config/auth.guards`, not Sanctum's dynamically registered guard.
+- **Spatie `tenant_id` column type mismatch** — Spatie's published migration defines `tenant_id` as `unsignedBigInteger` on `roles`, `model_has_roles`, and `model_has_permissions`. Our tenant IDs are UUIDs (strings). All three occurrences changed to `string` in the published migration.
+- **`school_class_id` FK derivation** — Eloquent derives the pivot FK from the model class name: `SchoolClass` → `school_class_id`. The actual column is `class_id`. Fixed by specifying FK columns explicitly on both `belongsToMany` calls in `SchoolClass`: `belongsToMany(User::class, 'class_users', 'class_id', 'user_id')` and `belongsToMany(Student::class, 'class_students', 'class_id', 'student_id')`.
+- **Seeder parameter injection** — `$this->call(Seeder::class, false, $params)` injects parameters into `run()` as method arguments (via Laravel's container), not as class property setters. `UserSeeder` and `ClassSeeder` initially used a `public string $emailDomain` property — changed to `run(string $emailDomain = 'demo.com')` so the container resolves it correctly. The bug was hidden on the first tenant (seeded fine with the default) and only surfaced on the second tenant (duplicate email violation).
+
+**User decision:**
+- Two tenants requested (not one) — enables tenant isolation testing in later phases. Springfield Primary School (`springfield.demo`) and Riverside Secondary College (`riverside.demo`).
+
+---
+
 ## Phase 5 — Eloquent Models, Enums, Factories, and Test Setup
 
 **Completed.**
