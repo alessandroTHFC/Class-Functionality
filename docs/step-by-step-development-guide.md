@@ -25,11 +25,12 @@ This is the sequential build roadmap. Each step should be completed and verified
 
 **Goal:** All major packages installed and minimally configured.
 
-9. Install Sanctum: `composer require laravel/sanctum` → run `php artisan vendor:publish --provider="Laravel\Sanctum\SanctumServiceProvider"`
-10. Install Stancl Tenancy: `composer require stancl/tenancy` → run `php artisan vendor:publish --tag=tenancy-config`
-11. Install Spatie Permission: `composer require spatie/laravel-permission` → run `php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider"`
-12. Configure Sanctum guard in `config/auth.php` — set API guard to use Sanctum
-13. Configure CORS in `config/cors.php` — allow requests from the Vue dev server origin (`http://localhost:5173`)
+9. ✅ Install Sanctum: `composer require laravel/sanctum` → run `php artisan install:api` (Laravel 13 method — also creates `routes/api.php`)
+10. ✅ Install Stancl Tenancy: `composer require stancl/tenancy` → run `php artisan tenancy:install` (publishes config + migrations)
+11. ✅ Install Spatie Permission: `composer require spatie/laravel-permission` → run `php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider"`
+11a. ✅ Install Pest PHP: `composer require pestphp/pest --dev --with-all-dependencies` (not shipped by default in this scaffold)
+12. ✅ Configure Sanctum guard in `config/auth.php` — set API guard to use Sanctum
+13. ✅ Configure CORS in `config/cors.php` — allow requests from the Vue dev server origin (`http://localhost:5173`)
 
 ---
 
@@ -37,11 +38,11 @@ This is the sequential build roadmap. Each step should be completed and verified
 
 **Goal:** Stancl configured for single-database mode with tenant-from-user resolution.
 
-14. Configure `config/tenancy.php` — set single-database mode, register tenant-aware models
-15. Enable Spatie teams feature in `config/permission.php` — set `teams => true`, `team_foreign_key => tenant_id`
-16. Create `InitialiseTenantFromUser` middleware in `app/Http/Middleware/`
-17. Register the middleware in `bootstrap/app.php`
-18. Define the `tenant` middleware group in route configuration
+14. ✅ Configure `config/tenancy.php` — removed `DatabaseTenancyBootstrapper` (single-database mode uses `BelongsToTenant` trait, not per-tenant DB switching)
+15. ✅ Enable Spatie teams feature in `config/permission.php` — set `teams => true`, `team_foreign_key => tenant_id`; created follow-up migration to add `tenant_id` to `roles`, `model_has_roles`, `model_has_permissions`
+16. ✅ Create `InitialiseTenantFromUser` middleware in `app/Http/Middleware/`
+17. ✅ Register the middleware alias `tenant` in `bootstrap/app.php`
+18. ✅ Define the `tenant` middleware alias in `bootstrap/app.php` (combined with step 17)
 
 ---
 

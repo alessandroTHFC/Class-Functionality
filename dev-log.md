@@ -68,3 +68,47 @@ A record of each development phase: what was built, what decisions were made, wh
 
 ---
 
+## Phase 2 — Install and Configure Packages
+
+**Completed.**
+
+**What was built:**
+- `laravel/sanctum` ^4.3 installed; `php artisan install:api` run — created `routes/api.php`, published personal access tokens migration
+- `stancl/tenancy` ^3.10 installed; `php artisan tenancy:install` run — published `config/tenancy.php`, `routes/tenant.php`, `TenancyServiceProvider`, and tenancy migrations
+- `spatie/laravel-permission` ^8.0 installed; config and migration published
+- `pestphp/pest` ^4.7 installed as dev dependency (not in original scaffold)
+- `config/auth.php` — `api` guard added with `driver: sanctum`
+- `config/cors.php` — published and `allowed_origins` set to `['http://localhost:5173']`
+- `php artisan migrate` — all 4 new migrations ran: `tenants`, `domains`, `personal_access_tokens`, `permission_tables`
+
+---
+
+## Phase 3 — Tenancy Configuration
+
+**Completed.**
+
+**What was built:**
+- `config/tenancy.php` — `DatabaseTenancyBootstrapper` removed; single-database mode relies on `BelongsToTenant` trait on models, not per-tenant database switching
+- `config/permission.php` — `teams` enabled, `team_foreign_key` set to `tenant_id`
+- Follow-up migration created and run: added `tenant_id` column to `roles`, `model_has_roles`, and `model_has_permissions` (Spatie teams feature requires this column but migration had already run without it)
+- `app/Http/Middleware/InitialiseTenantFromUser.php` — reads `Auth::user()->tenant_id`, finds the tenant, calls `tenancy()->initialize($tenant)`
+- `bootstrap/app.php` — middleware registered as alias `tenant`; routes can now use `->middleware(['auth:sanctum', 'tenant'])`
+
+**Notable:**
+- Spatie `teams` migration catch: enabling teams after the initial migration requires a manual follow-up migration. Documented in the dev guide step.
+
+---
+
+**SSL issue resolved during this phase:**
+- Composer SSL cert verification was failing (`curl error 60`) on the corporate network because Herd's bundled `cacert.pem` did not include the corporate proxy's CA certificate
+- Windows trusted root certs (77 certs) exported to `C:\Temp\windows-certs.pem` using PowerShell
+- Herd `php.ini` updated: `curl.cainfo` and `openssl.cafile` now point to `C:\Temp\windows-certs.pem` instead of Herd's default bundle
+- All subsequent `composer require` commands worked without special flags
+- Root cause: corporate network SSL inspection proxy presents its own cert; PHP/curl doesn't trust it unless the corp CA is in its cert bundle. The Windows cert store already had it (pushed via Group Policy); Herd did not.
+
+**Decisions made:**
+- `php artisan install:api` used instead of manual `vendor:publish` — this is the Laravel 13 preferred method and also wires up the `routes/api.php` file which doesn't exist by default
+- Pest added during Phase 2 rather than later — caught the gap early since the testing docs depend on it
+
+---
+
