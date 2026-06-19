@@ -96,6 +96,10 @@ A record of each development phase: what was built, what decisions were made, wh
 
 **Notable:**
 - Spatie `teams` migration catch: enabling teams after the initial migration requires a manual follow-up migration. Documented in the dev guide step.
+- **`TenancyServiceProvider` rewritten** — the file published by `php artisan tenancy:install` is a multi-database template that doesn't suit our setup. Two problems: (1) it referenced `Jobs\CreateDatabase`, `Jobs\MigrateDatabase`, and `Jobs\DeleteDatabase` which create per-tenant databases on every tenant record creation — we don't do this; (2) `makeTenancyMiddlewareHighestPriority()` called `$this->app[\Illuminate\Contracts\Http\Kernel::class]` which crashes on Laravel 11 because the HTTP Kernel no longer exists. The provider was rewritten to only include the core tenancy lifecycle events (`TenancyInitialized` → `BootstrapTenancy`, `TenancyEnded` → `RevertToCentralContext`) which is all single-database tenancy needs. Spotted by user reviewing the open file in the IDE — would not have caused an immediate crash but `makeTenancyMiddlewareHighestPriority()` would have thrown on any request.
+- **`TenancyServiceProvider` not registered** — `php artisan tenancy:install` creates the provider file but does not add it to `bootstrap/providers.php` (stancl hasn't updated for Laravel 11's new provider registration approach). Added manually. Without this, tenancy lifecycle event listeners never attached — cache/queue scoping wouldn't work and context wouldn't clean up between requests.
+- **`routes/tenant.php` cleaned** — published by tenancy:install with domain-based middleware we don't use. File emptied and replaced with an explanatory comment. Was never loaded (since `mapRoutes()` was removed from the provider) but left in place would have caused confusion.
+- Full codebase scan confirmed no other references to removed multi-database patterns or the Laravel 10 HTTP Kernel.
 
 ---
 
