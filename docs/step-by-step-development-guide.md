@@ -139,12 +139,12 @@ This is the sequential build roadmap. Each step should be completed and verified
 74. ✅ Create `YearLevelController` in `app/Http/Controllers/`
 75. ✅ Create `ClassController` in `app/Http/Controllers/` — `index`, `store`, `show`, `update`, `destroy`
     > Note: `DELETE /api/classes/{class}/students/{student}` removed — student add/remove is edit-only functionality, handled exclusively through the PUT update flow
-76. Register `ClassPolicy`, `ClassObserver` in `AppServiceProvider::boot()`
-77. Register all class and year level routes in `routes/api.php` under `auth:sanctum` + `tenant` middleware
-78. Write `tests/Feature/ClassTest.php`
-79. Write `tests/Feature/ClassStudentTest.php` and `tests/Feature/ClassUserTest.php`
-80. Write `tests/Unit/ClassDetailResourceTest.php` (NCCD summary calculation)
-81. Run `php artisan test` — all tests pass
+76. ✅ Register `ClassPolicy` and `ClassObserver` in `AppServiceProvider::boot()` — policy mapped manually because `SchoolClass` → `ClassPolicy` doesn't follow auto-discovery naming; observer wired so `creating()` fires on every create call
+77. ✅ Register all class and year level routes in `routes/api.php` under `auth:sanctum` + `tenant` middleware — `apiResource('classes', ...)` covers all 5 standard REST routes in one declaration
+78. ✅ Write `tests/Feature/ClassTest.php` — 22 tests covering list, create, show, update, delete for all relevant roles
+79. ✅ Write `tests/Feature/ClassStudentTest.php` and `tests/Feature/ClassUserTest.php` — 8 tests covering sync add, sync remove, clear all, and 403 for unauthorised roles
+80. ✅ Write `tests/Unit/ClassDetailResourceTest.php` — 3 tests covering NCCD summary counts including zero cases and empty class
+81. ✅ Run `php artisan test` — 46 tests, 106 assertions, all passing
 
 ---
 

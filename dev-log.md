@@ -181,6 +181,44 @@ A record of each development phase: what was built, what decisions were made, wh
 
 ---
 
+## Phase 8 — Class Feature (Backend)
+
+**Completed.**
+
+**What was built:**
+- `app/Policies/ClassPolicy.php` — 5 policy methods (`viewAny`, `view`, `create`, `update`, `delete`), each delegating to the matching Spatie permission string
+- `app/Http/Resources/YearLevelResource.php`, `UserResource.php` — small shared resources reused across list and detail responses
+- `app/Http/Resources/ClassStudentResource.php` — full student shape for the class detail view including NCCD fields; uses `->value` to unwrap enum casts to plain strings
+- `app/Http/Resources/ClassListResource.php` — list item shape; exposes `students_count` set by `withCount()` in the repository
+- `app/Http/Resources/ClassDetailResource.php` — full class shape; computes NCCD summary by filtering the already-loaded students collection in memory — no extra query
+- `app/Http/Resources/ClassListCollection.php` — custom `ResourceCollection` that injects tenant-wide `summary` into paginated `meta` via `paginationInformation()`
+- `app/Http/Requests/StoreClassRequest.php` and `UpdateClassRequest.php` — validation + permission-level `authorize()` checks
+- `app/Repositories/ClassRepository.php` — all Eloquent queries; `list()`, `summary()`, `findWithRelations()`, `create()`, `syncUsers()`, `syncStudents()`, `update()`, `delete()`
+- `app/Services/ClassService.php` — orchestration; `list()` returns both paginator and summary; `create()` and `update()` call sync methods after persisting the class
+- `app/Observers/ClassObserver.php` — `creating()` sets `created_by_user_id ??= Auth::id()`
+- `app/Http/Controllers/YearLevelController.php` — single `index` method, returns year levels ordered by `sort_order`
+- `app/Http/Controllers/ClassController.php` — 5 methods (`index`, `store`, `show`, `update`, `destroy`); thin; all work delegated to `ClassService`
+- `app/Providers/AppServiceProvider.php` — registers `ClassPolicy` via `Gate::policy()` and wires `ClassObserver` via `SchoolClass::observe()`
+- `routes/api.php` — `Route::apiResource('classes', ...)` registers all 5 REST routes; `GET /year_levels` added; both under `auth:sanctum` + `tenant`
+- `tests/Feature/ClassTest.php` — 22 tests across all endpoints and all roles
+- `tests/Feature/ClassStudentTest.php` — 4 tests covering student sync add, remove, clear, and 403
+- `tests/Feature/ClassUserTest.php` — 4 tests covering staff sync add, remove, clear, and 403
+- `tests/Unit/ClassDetailResourceTest.php` — 3 unit tests for NCCD summary calculation in isolation
+
+**46 tests, 106 assertions — all passing.**
+
+**Notable — four errors resolved:**
+- **`DELETE /api/classes/{class}/students/{student}` removed** — originally designed as a quick per-student remove button on the class detail view. User clarified that student add/remove is edit-only functionality, only visible to roles that can open the edit modal. Endpoint, repository method, service method, API contract, testing doc, and CLAUDE.md all updated.
+- **`authorize()` undefined on `ClassController`** — Laravel 11 stripped `AuthorizesRequests` from the base `Controller` class. Added `use AuthorizesRequests` to `app/Http/Controllers/Controller.php` so all controllers have access to `$this->authorize()`.
+- **`NOT NULL` constraint on `created_by_user_id` in tests** — `ClassObserver::creating()` was setting `$class->created_by_user_id = Auth::id()`, unconditionally overwriting the value that `SchoolClassFactory` had already provided. `Auth::id()` is null in tests using direct factory creation (no HTTP request), causing the insert to fail. Fixed with `??=`: the observer only sets the value if it isn't already present.
+- **Policy auto-discovery mismatch** — Laravel auto-discovers policies by matching `ModelName` → `ModelNamePolicy`. Our model is `SchoolClass` but the policy is `ClassPolicy`, not `SchoolClassPolicy`. Auto-discovery fails silently — policies just don't apply. Fixed by explicitly registering `Gate::policy(SchoolClass::class, ClassPolicy::class)` in `AppServiceProvider::boot()`.
+
+**User decisions:**
+- Student add/remove scoped to update flow only — no dedicated delete endpoint for individual students
+- Comments required on all files going forward (controllers, services, repositories, tests, routes, observers, resources, form requests)
+
+---
+
 ## Phase 5 — Eloquent Models, Enums, Factories, and Test Setup
 
 **Completed.**
