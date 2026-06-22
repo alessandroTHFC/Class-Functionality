@@ -205,7 +205,7 @@ A record of each development phase: what was built, what decisions were made, wh
 - `tests/Feature/ClassUserTest.php` — 4 tests covering staff sync add, remove, clear, and 403
 - `tests/Unit/ClassDetailResourceTest.php` — 3 unit tests for NCCD summary calculation in isolation
 
-**46 tests, 106 assertions — all passing.**
+**48 tests, 110 assertions — all passing after Phase 8 (2 tenant isolation tests added inline at Phase 9 start).**
 
 **Notable — four errors resolved:**
 - **`DELETE /api/classes/{class}/students/{student}` removed** — originally designed as a quick per-student remove button on the class detail view. User clarified that student add/remove is edit-only functionality, only visible to roles that can open the edit modal. Endpoint, repository method, service method, API contract, testing doc, and CLAUDE.md all updated.
@@ -216,6 +216,35 @@ A record of each development phase: what was built, what decisions were made, wh
 **User decisions:**
 - Student add/remove scoped to update flow only — no dedicated delete endpoint for individual students
 - Comments required on all files going forward (controllers, services, repositories, tests, routes, observers, resources, form requests)
+
+---
+
+## Phase 9 — Student Notes (Backend)
+
+**Completed.**
+
+**What was built:**
+- `app/Policies/StudentNotePolicy.php` — `viewAny` (all roles with `view student notes`) and `create` (roles with `add student note`; teachers-assistant is included, read-only is not)
+- `app/Http/Resources/StudentNoteResource.php` — note shape with `whenLoaded()` guards on `author` and `schoolClass`; JSON key for the class relation is `class` even though the PHP method is `schoolClass()` (reserved word workaround)
+- `app/Http/Requests/StoreNoteRequest.php` — `authorize()` checks `add student note`; validates `student_ids` (required array min:1), `class_id`, `note_text`, `note_date`, `confidentiality_level`
+- `app/Repositories/NoteRepository.php` — `forStudent()` with optional `class_id` `when()` filter and eager-loads; `create()` stamps `user_id` from `Auth::id()`
+- `app/Services/NoteService.php` — `forStudent()` delegates; `createBulk()` loops over `student_ids` calling `repository->create()` once per student, returns count
+- `app/Http/Controllers/NoteController.php` — `index()` uses route model binding for `{student}` (BelongsToTenant gives free cross-tenant 404); `store()` delegates to `NoteService::createBulk()` and returns count in message
+- `app/Providers/AppServiceProvider.php` — `Gate::policy(StudentNote::class, StudentNotePolicy::class)` added
+- `routes/api.php` — `GET /students/{student}/notes` and `POST /notes` added; comment explains why the bulk endpoint is flat rather than nested
+- `tests/Feature/NoteTest.php` — 10 tests: list, class_id filter, response shape, RBAC (read-only allowed to view, forbidden to create), bulk create count, author stamping
+- `tests/Unit/NoteServiceTest.php` — 4 unit tests with Mockery mocks verifying delegation and loop count without hitting the database
+- Tenant isolation tests (2) added to `tests/Feature/ClassTest.php` as the Phase 9 starting point
+
+**62 tests, 141 assertions — all passing.**
+
+**Bug found during manual Postman testing (not caught by tests):**
+- `GET /api/students/{student}/notes` returned 403 for all authenticated users despite correct permissions in the seeder. Root cause: `InitialiseTenantFromUser` middleware was calling `tenancy()->initialize($tenant)` but not `app(PermissionRegistrar::class)->setPermissionsTeamId($tenant->id)`. Without this, Spatie's teams-scoped permission check has no team context and `$user->can()` always returns false. In tests this was masked because `TestCase::setUp()` calls `setPermissionsTeamId()` directly before each test. Fixed by adding the call to the middleware immediately after `tenancy()->initialize()`.
+
+**Design notes:**
+- Bulk creation is a simple loop in the service — one `StudentNote` row per `student_id` with identical content. No junction table. This mirrors how Inspire works: each student gets their own note record for independent future management.
+- `GET /students/{student}/notes` uses nested routing (sub-resource URL) rather than `GET /notes/{studentId}` because `{student}` is resolved via route model binding, giving automatic cross-tenant 404 protection through BelongsToTenant's global scope without any controller code.
+- `POST /notes` is a flat route rather than nested under a student because the bulk create payload targets multiple students — nesting under one student ID would misrepresent the request's intent.
 
 ---
 

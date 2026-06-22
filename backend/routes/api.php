@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ClassController;
+use App\Http\Controllers\NoteController;
 use App\Http\Controllers\YearLevelController;
 use Illuminate\Support\Facades\Route;
 
@@ -35,5 +36,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Year levels are a simple lookup list — no CRUD needed beyond index.
         Route::get('/year_levels', [YearLevelController::class, 'index']);
+
+        // Notes are nested under /students/{student} for the GET endpoint because notes are
+        // a sub-resource of a student. {student} is resolved via route model binding —
+        // BelongsToTenant's global scope means a student from another tenant returns 404
+        // automatically, protecting cross-tenant access without any controller code.
+        //
+        // POST /notes is a flat route because a single request creates notes for multiple
+        // students — nesting it under one student ID would be misleading for a bulk operation.
+        Route::get('/students/{student}/notes', [NoteController::class, 'index']);
+        Route::post('/notes', [NoteController::class, 'store']);
     });
 });

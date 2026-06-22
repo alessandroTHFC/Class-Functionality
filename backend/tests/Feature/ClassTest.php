@@ -2,6 +2,7 @@
 
 use App\Models\SchoolClass;
 use App\Models\Student;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Models\YearLevel;
 
@@ -273,5 +274,56 @@ describe('DELETE /api/classes/{class}', function () {
         actingAsRole('read-only')
             ->deleteJson("/api/classes/{$class->id}")
             ->assertForbidden();
+    });
+});
+
+describe('Tenant isolation', function () {
+
+    // BelongsToTenant applies a global Eloquent scope that filters every query by the
+    // current tenant_id. This test spins up a second tenant, creates a class there,
+    // then verifies a user from the first tenant cannot see it.
+    //
+    // How it works:
+    // 1. A class is created in the first tenant (already initialized by TestCase::setUp).
+    // 2. Tenancy is ended, a second tenant is initialized, and a class is created there.
+    // 3. Tenancy is ended and the first tenant is re-initialized.
+    // 4. actingAsRole() creates a user with tenant_id = test()->tenant->id.
+    // 5. The HTTP request hits InitialiseTenantFromUser, which re-initializes tenancy
+    //    from the user's tenant_id — locking the query scope to tenant 1.
+    // 6. BelongsToTenant filters the classes query — only tenant 1's class is returned.
+    it('does not return classes belonging to another tenant', function () {
+        $ownClass = SchoolClass::factory()->create(['name' => 'Tenant One Class']);
+
+        // Temporarily switch to a second tenant and seed a class there
+        tenancy()->end();
+        $otherTenant = Tenant::factory()->create();
+        tenancy()->initialize($otherTenant);
+        SchoolClass::factory()->create(['name' => 'Tenant Two Class']);
+        tenancy()->end();
+
+        // Restore the first tenant context for the remainder of the test
+        tenancy()->initialize(test()->tenant);
+
+        actingAsRole('teacher')
+            ->getJson('/api/classes')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.name', 'Tenant One Class');
+    });
+
+    // Route model binding resolves {class} through BelongsToTenant's global scope.
+    // A class that belongs to another tenant is invisible — findOrFail returns 404.
+    it('returns 404 when accessing a class from another tenant directly', function () {
+        tenancy()->end();
+        $otherTenant = Tenant::factory()->create();
+        tenancy()->initialize($otherTenant);
+        $otherClass = SchoolClass::factory()->create();
+        tenancy()->end();
+
+        tenancy()->initialize(test()->tenant);
+
+        actingAsRole('teacher')
+            ->getJson("/api/classes/{$otherClass->id}")
+            ->assertNotFound();
     });
 });

@@ -152,20 +152,20 @@ This is the sequential build roadmap. Each step should be completed and verified
 
 **Goal:** Note creation endpoint working including bulk, manually verified, and covered by Pest tests.
 
-79. Create `StudentNotePolicy` in `app/Policies/`
-80. Create `NoteRepository` in `app/Repositories/`
-81. Create `NoteService` in `app/Services/` — implement bulk note creation loop
-82. Create `StoreNoteRequest` in `app/Http/Requests/`
-83. Create `StudentNoteResource` in `app/Resources/`
-84. Create `NoteController` in `app/Http/Controllers/`
-85. Register note routes in `routes/api.php`
-86. Manually verify `GET /api/students/{id}/notes`
-87. Manually verify `POST /api/notes` with a single student ID
-88. Manually verify `POST /api/notes` with multiple student IDs — confirm one record per student in SQLTools
-89. Write `tests/Feature/NoteTest.php` covering all cases in `docs/testing.md`
-90. Write `tests/Feature/TenantIsolationTest.php`
-91. Write `tests/Unit/NoteServiceTest.php` (bulk creation logic)
-92. Run `php artisan test` — all tests pass
+79. ✅ Create `StudentNotePolicy` in `app/Policies/`
+80. ✅ Create `NoteRepository` in `app/Repositories/`
+81. ✅ Create `NoteService` in `app/Services/` — implement bulk note creation loop
+82. ✅ Create `StoreNoteRequest` in `app/Http/Requests/`
+83. ✅ Create `StudentNoteResource` in `app/Resources/`
+84. ✅ Create `NoteController` in `app/Http/Controllers/`
+85. ✅ Register note routes in `routes/api.php`
+86. ✅ Manually verify `GET /api/students/{id}/notes`
+87. ✅ Manually verify `POST /api/notes` with a single student ID
+88. ✅ Manually verify `POST /api/notes` with multiple student IDs — confirm one record per student in SQLTools
+89. ✅ Write `tests/Feature/NoteTest.php` — 10 tests (list, filter by class, shape, RBAC, bulk create, author stamping)
+90. ✅ Tenant isolation for classes added directly to `tests/Feature/ClassTest.php` (2 tests)
+91. ✅ Write `tests/Unit/NoteServiceTest.php` — 4 tests (delegation, class_id passthrough, bulk loop count, single student)
+92. ✅ Run `php artisan test` — 62 tests, 141 assertions, all pass
 
 ---
 
