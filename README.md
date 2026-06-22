@@ -383,6 +383,79 @@ The alternative — manually truncating tables or re-seeding — is slow and fra
 
 ---
 
+### `Route::apiResource()` — declaring all REST routes in one line
+
+Instead of registering five routes individually, `apiResource()` generates them all at once from a single declaration. It maps HTTP verbs to controller method names following Laravel's naming convention.
+
+```php
+// This single line registers:
+//   GET    /classes          → ClassController@index
+//   POST   /classes          → ClassController@store
+//   GET    /classes/{class}  → ClassController@show
+//   PUT    /classes/{class}  → ClassController@update
+//   DELETE /classes/{class}  → ClassController@destroy
+Route::apiResource('classes', ClassController::class);
+```
+
+The `api` variant omits the two HTML routes that `Route::resource()` would also register (`create` and `edit` — the ones that serve HTML forms), since a JSON API never needs them.
+
+The `{class}` binding in the URL is derived from the resource name you pass in. Laravel then uses **route model binding** to resolve that URL segment into a model instance automatically — if `{class}` is `5`, the controller receives a `SchoolClass` object with `id = 5`. If the record doesn't exist, Laravel returns a `404` before the controller method is called.
+
+---
+
+### `whenLoaded()` — conditional relation loading in resources
+
+`whenLoaded()` only includes a relation in the JSON response if it was already eager-loaded before the resource was called. If it wasn't loaded, the field is omitted from the output entirely rather than triggering a lazy database query.
+
+```php
+// In ClassListResource
+'year_level' => new YearLevelResource($this->whenLoaded('yearLevel')),
+```
+
+Without `whenLoaded()`, accessing `$this->yearLevel` inside a resource would fire a separate SQL query for every item in the list — the classic N+1 problem. With `whenLoaded()`, the resource trusts that the repository already called `with('yearLevel')`, and if it didn't, the field is simply absent from the response instead of causing a query.
+
+```php
+// The repository eager-loads the relation before it reaches the resource:
+SchoolClass::with(['yearLevel', 'createdBy', 'users'])->paginate(15);
+
+// The resource checks: was yearLevel loaded? Yes → include it. No → omit it.
+'year_level' => new YearLevelResource($this->whenLoaded('yearLevel')),
+```
+
+This also makes resources reusable across endpoints that load different sets of relations — the same resource handles both light and heavy response shapes without separate classes.
+
+---
+
+### Custom `ResourceCollection` and `parent::__construct()`
+
+When a standard paginated resource collection needs extra data injected into the response — like our tenant-wide summary stats — you create a custom class that extends `ResourceCollection`.
+
+```php
+class ClassListCollection extends ResourceCollection
+{
+    public $collects = ClassListResource::class;
+
+    public function __construct($resource, private readonly array $summary)
+    {
+        parent::__construct($resource);
+    }
+
+    public function paginationInformation(Request $request, array $paginated, array $default): array
+    {
+        $default['meta']['summary'] = $this->summary;
+        return $default;
+    }
+}
+```
+
+**Why `parent::__construct()`?**
+`ResourceCollection` has its own constructor that registers the paginator and sets up the internal collection. If you override `__construct()` to accept your extra parameter (`$summary`) but don't call `parent::__construct($resource)`, all of that setup never runs — the resource won't know what data to wrap, and the paginator won't serialise correctly. Calling `parent::__construct($resource)` first completes the original setup, and your custom logic runs alongside it rather than replacing it.
+
+**Why `paginationInformation()`?**
+When a `ResourceCollection` wraps a `LengthAwarePaginator`, Laravel calls `paginationInformation()` to build the `links` and `meta` blocks. Overriding it is the correct hook for injecting data into `meta` — you receive the default pagination data as an array, modify it, and return it. Any key you add to `$default['meta']` ends up in the JSON response's `meta` block alongside the standard pagination fields.
+
+---
+
 ## AI-Assisted Development
 
 I used Claude Code throughout this project. This section covers how I structured that workflow, and is an honest account of what I caught, what I pushed back on, and what I took away from the experience.

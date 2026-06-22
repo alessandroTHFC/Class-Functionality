@@ -124,26 +124,27 @@ This is the sequential build roadmap. Each step should be completed and verified
 
 **Goal:** All class API endpoints implemented, manually verified, and covered by Pest tests.
 
-62. Create `ClassPolicy` in `app/Policies/`
-63. Register `ClassPolicy` in `AuthServiceProvider`
-64. Create `ClassRepository` in `app/Repositories/`
-65. Create `ClassService` in `app/Services/`
-66. Create `StoreClassRequest` and `UpdateClassRequest` in `app/Http/Requests/`
-67. Create `ClassListResource` and `ClassDetailResource` in `app/Resources/`
-68. Create `ClassStudentResource` and `UserResource` in `app/Resources/`
-    68a. Create `YearLevelResource` in `app/Resources/`
-69. Create `ClassController` in `app/Http/Controllers/`
-70. Register class routes in `routes/api.php` under the `tenant` middleware group
-71. Create `ClassObserver` and register it in `AppServiceProvider`
-    71a. Create `YearLevelController` with a single `index` method — returns all year levels for the tenant as a plain resource collection
-    71b. Register `GET /api/year_levels` route in `routes/api.php` under the `tenant` middleware group
-72. Manually verify: GET /classes, GET /year_levels, POST /classes, GET /classes/{id}, PUT /classes/{id}, DELETE /classes/{id}
-73. Manually verify: PUT /classes/{id} with updated user_ids — confirm sync removes unsubmitted users and adds new ones
-74. Manually verify: DELETE /classes/{id}/students/{studentId}
-75. Write `tests/Feature/ClassTest.php` covering all cases in `docs/testing.md`
-76. Write `tests/Feature/ClassStudentTest.php` and `tests/Feature/ClassUserTest.php`
-77. Write `tests/Unit/ClassDetailResourceTest.php` (NCCD summary calculation)
-78. Run `php artisan test --filter ClassTest` — all tests pass
+62. ✅ Create `ClassPolicy` in `app/Policies/` — 5 methods: `viewAny`, `view`, `create`, `update`, `delete`; each delegates to the matching Spatie permission
+63. ✅ Create `YearLevelResource` in `app/Http/Resources/`
+64. ✅ Create `UserResource` in `app/Http/Resources/` — returns `id`, `name`, `roles`
+65. ✅ Create `ClassStudentResource` in `app/Http/Resources/` — full student shape for the class detail response
+66. ✅ Create `ClassListResource` in `app/Http/Resources/` — list item shape with `student_count` (from `withCount`)
+67. ✅ Create `ClassDetailResource` in `app/Http/Resources/` — full class shape including NCCD summary computed from loaded students collection
+68. ✅ Create `ClassListCollection` in `app/Http/Resources/` — custom `ResourceCollection` that injects the tenant-wide `summary` into the paginated `meta` via `paginationInformation()`
+69. ✅ Create `StoreClassRequest` in `app/Http/Requests/`
+70. ✅ Create `UpdateClassRequest` in `app/Http/Requests/`
+71. ✅ Create `ClassRepository` in `app/Repositories/` — `list()`, `summary()`, `findWithRelations()`, `create()`, `syncUsers()`, `syncStudents()`, `update()`, `delete()`
+72. ✅ Create `ClassService` in `app/Services/` — `list()`, `find()`, `create()`, `update()`, `delete()`
+73. ✅ Create `ClassObserver` in `app/Observers/` — `creating()` sets `created_by_user_id` from `Auth::id()`
+74. ✅ Create `YearLevelController` in `app/Http/Controllers/`
+75. ✅ Create `ClassController` in `app/Http/Controllers/` — `index`, `store`, `show`, `update`, `destroy`
+    > Note: `DELETE /api/classes/{class}/students/{student}` removed — student add/remove is edit-only functionality, handled exclusively through the PUT update flow
+76. Register `ClassPolicy`, `ClassObserver` in `AppServiceProvider::boot()`
+77. Register all class and year level routes in `routes/api.php` under `auth:sanctum` + `tenant` middleware
+78. Write `tests/Feature/ClassTest.php`
+79. Write `tests/Feature/ClassStudentTest.php` and `tests/Feature/ClassUserTest.php`
+80. Write `tests/Unit/ClassDetailResourceTest.php` (NCCD summary calculation)
+81. Run `php artisan test` — all tests pass
 
 ---
 

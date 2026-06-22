@@ -110,7 +110,6 @@ Details: `docs/models.md`
 
 - `POST /api/login`, `POST /api/logout`, `GET /api/user`
 - `GET|POST /api/classes`, `GET|PUT|DELETE /api/classes/{class}`
-- `DELETE /api/classes/{class}/students/{student}`
 - `GET /api/students`
 - `GET /api/users`
 - `GET /api/year_levels`

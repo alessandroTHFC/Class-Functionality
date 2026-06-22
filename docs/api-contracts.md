@@ -264,23 +264,6 @@ Soft-delete a class (sets `deleted_at`).
 
 ---
 
-## Class Student Enrolment
-
-### DELETE /api/classes/{class}/students/{student}
-Remove a single student from a class. Used from the class detail view (remove button on an individual student). Staff assignment changes always go through `PUT /api/classes/{class}`.
-
-**Middleware:** `auth:sanctum`, `tenant`
-**Permission:** `edit class`
-
-**Response 200**
-```json
-{
-  "message": "Student removed successfully."
-}
-```
-
----
-
 ## Students
 
 ### GET /api/students

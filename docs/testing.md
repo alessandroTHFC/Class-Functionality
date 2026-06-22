@@ -237,9 +237,6 @@ it('soft deletes the class — deleted_at is set, record still exists in db')
 it('syncs students when student_ids are submitted via PUT — adds new, removes omitted')
 it('removes all students when student_ids is an empty array via PUT')
 it('returns 403 when read-only tries to update a class with student_ids')
-
-it('allows coordinator to remove a single student via DELETE /classes/{id}/students/{student}')
-it('returns 403 when read-only tries to remove a student')
 ```
 
 ---
