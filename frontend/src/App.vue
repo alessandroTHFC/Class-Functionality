@@ -1,8 +1,10 @@
 <script setup lang="ts">
 // RouterView renders whichever page component the current route maps to.
-// No layout wrapper here yet — that comes in Phase 11 when we add a nav bar.
+// Sonner is mounted here so the toast renderer is available on every page.
+import Sonner from '@/components/ui/Sonner.vue'
 </script>
 
 <template>
   <RouterView />
+  <Sonner />
 </template>

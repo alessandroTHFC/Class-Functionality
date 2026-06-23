@@ -317,13 +317,16 @@ export interface StoreNotePayload {
 
 **Goal:** Authenticated users can see a paginated, searchable list of classes.
 
-102. Create `src/stores/useClassStore.ts` — fetches class list, handles pagination state
-103. Create `src/composables/useClasses.ts` — wraps API calls (list, create, update, delete)
-104. Create `ClassDashboard.vue` page — table/card list of classes with search input and pagination
-105. Create `ClassFormDialog.vue` — modal for create and edit; includes year level select, staff multi-select, student multi-select (all from seeded data via API)
-106. Wire up create class button → dialog → `POST /api/classes`
-107. Wire up edit button → dialog pre-populated → `PUT /api/classes/{id}`
-108. Wire up delete button → confirmation → `DELETE /api/classes/{id}`
+**Architecture note:** The class list is held in a local `classList` ref inside `ClassDashboard.vue` — not a Pinia store. This ensures the list is always fresh on navigation (no stale data if another user creates a class). Year levels and staff users are fetched once and stored in a shared `useReferenceStore` Pinia store since they are seeded/rarely change and are needed by both the filter bar and the form dialog.
+
+102. Create `src/stores/useReferenceStore.ts` — Pinia store that fetches and caches year levels (`GET /api/year_levels`) and staff users (`GET /api/users`); called once on `ClassDashboard` mount
+103. Create `src/composables/useClasses.ts` — wraps API calls (list, create, update, delete); returns `classList` ref, pagination state, and filter state; `fetchClasses()` replaces `classList.value` on every call
+104. Create `ClassDashboard.vue` page — declares local `classList` ref populated by `useClasses`; renders a table/card list of classes with search input and pagination
+105. Create `ClassFormDialog.vue` — modal for create and edit; year level select and staff multi-select drawn from `useReferenceStore`; student multi-select fetched from `GET /api/students` on dialog open
+106. Wire up create class button → dialog → `POST /api/classes` → call `fetchClasses()` to refresh `classList`
+107. Wire up edit button → dialog pre-populated → `PUT /api/classes/{id}` → call `fetchClasses()` to refresh `classList`
+108. Install `vue-sonner` and add `<Toaster />` to `App.vue` — provides the global toast renderer; theamed via `toastOptions` to match ClassHub colours; used for confirmations, success, and error feedback across the whole SPA
+109. Wire up delete button → `toast('Please confirm…', { duration: Infinity, action: { label: 'Yes, delete', onClick: () => deleteClass(id) }, cancel: { label: 'No' } })` — no composable or custom component needed
 
 ---
 

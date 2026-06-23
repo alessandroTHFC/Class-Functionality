@@ -67,7 +67,7 @@ frontend/
 | Page components | PascalCase, descriptive | `ClassDashboard.vue`, `ClassDetail.vue` — all `.vue` files use `<script setup lang="ts">` |
 | Shared components | PascalCase | `BulkNoteModal.vue`, `StudentPanel.vue` |
 | Composables | camelCase, `use` prefix | `useClasses.ts`, `useAuth.ts` |
-| Pinia stores | camelCase, `use` prefix | `useClassStore.ts`, `useAuthStore.ts` |
+| Pinia stores | camelCase, `use` prefix | `useAuthStore.ts`, `useReferenceStore.ts` — class list data is NOT stored in Pinia; it lives in a local `classList` ref on the page component |
 | API calls | Inside composables only | Never in components or pages directly |
 
 ---
