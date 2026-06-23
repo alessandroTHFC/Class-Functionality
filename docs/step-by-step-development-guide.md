@@ -173,7 +173,7 @@ This is the sequential build roadmap. Each step should be completed and verified
 
 **Goal:** Vue app running, connected to the Laravel API, with routing and auth store in place.
 
-93. Create `src/types/index.ts` — define all shared TypeScript interfaces based on API response shapes:
+93. ✅ Create `src/types/index.ts` — define all shared TypeScript interfaces based on API response shapes:
 
 ```ts
 // Auth
@@ -302,14 +302,14 @@ export interface StoreNotePayload {
 }
 ```
 
-94. Install frontend dependencies: `npm install vue-router@4 pinia axios`
-95. Install and configure Tailwind CSS in the frontend
-96. Set up shadcn-vue — copy initial base components (Button, Dialog, Input, etc.)
-97. Create `src/lib/axios.ts` — configure base URL (`http://localhost:8000`) and Bearer token interceptor
-98. Create `src/router/index.ts` — define routes for `/login`, `/classes`, `/classes/:id`
-99. Add router guard — redirect unauthenticated users to `/login`
-100.  Create `src/stores/useAuthStore.ts` — handles login, logout, token persistence in localStorage
-101.  Create `LoginPage.vue` — email/password form that calls the login endpoint and stores the token
+94. ✅ Install frontend dependencies: `npm install vue-router@4 pinia axios class-variance-authority clsx tailwind-merge radix-vue lucide-vue-next` + `npm install -D tailwindcss@3 postcss autoprefixer`
+95. ✅ Install and configure Tailwind CSS — `tailwind.config.js`, `postcss.config.js`, `style.css` rewritten with CSS vars and Tailwind directives
+96. ✅ Set up shadcn-vue base components — `src/components/ui/Button.vue`, `Input.vue`, `Label.vue`; `src/lib/utils.ts` with `cn()` helper
+97. ✅ Create `src/lib/axios.ts` — base URL `http://backend.test/api`, Bearer token interceptor reads from localStorage
+98. ✅ Create `src/router/index.ts` — routes for `/login`, `/classes`, `/classes/:id`; `vite.config.ts` and `tsconfig.app.json` updated with `@` path alias
+99. ✅ Add router navigation guard — `requiresAuth` redirects to `/login`; `requiresGuest` redirects authenticated users to `/classes`
+100. ✅ Create `src/stores/useAuthStore.ts` — Pinia store; `login()`, `logout()`, token + user persisted in localStorage; fetches full user (with tenant) after login
+101. ✅ Create `LoginPage.vue` — email/password form; 401/422 error handling; redirects to `/classes` on success
 
 ---
 

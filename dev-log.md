@@ -219,6 +219,34 @@ A record of each development phase: what was built, what decisions were made, wh
 
 ---
 
+## Phase 10 — Vue SPA Setup
+
+**Completed.**
+
+**What was built:**
+- `src/types/index.ts` — all TypeScript interfaces for every API response shape and request payload
+- `src/lib/axios.ts` — Axios instance pointing at `http://backend.test/api` with Bearer token interceptor reading from localStorage
+- `src/lib/utils.ts` — `cn()` helper (clsx + tailwind-merge) used by all shadcn-vue components
+- `src/router/index.ts` — routes for `/login`, `/classes`, `/classes/:id`; navigation guard redirects unauthenticated users to `/login` and authenticated users away from `/login`
+- `src/stores/useAuthStore.ts` — Pinia store; `login()` hits `POST /api/login` then immediately fetches full user via `GET /api/user`; token and user persisted to localStorage for page refresh survival
+- `src/pages/LoginPage.vue` — two-panel layout (dark sidebar left, form right); ClassHub colour palette applied; 401/422 error handling; redirects to `/classes` on success
+- `src/components/ui/Button.vue`, `Input.vue`, `Label.vue` — shadcn-vue components with ClassHub design tokens (teal primary, 8px border radius)
+- `src/App.vue` — replaced Vite scaffold with `<RouterView />`
+- `src/main.ts` — Pinia registered before Router (required because nav guard calls `useAuthStore()`)
+- `tailwind.config.js` — ClassHub design tokens added (teal, sidebar, app-bg, text-primary, etc.); Inter font; border radius overrides
+- `postcss.config.js`, `style.css` — Tailwind directives and CSS custom properties for shadcn-vue
+
+**Login working end-to-end:** browser → Herd (`backend.test`) → Laravel API → token stored → redirected to `/classes`.
+
+**Notable issues resolved:**
+- Node.js 18 incompatible with Vite 7 — upgraded to Node 20 via nvm
+- Tailwind v4 installed by default — downgraded to v3 (`tailwindcss@3`) for shadcn-vue compatibility
+- `@apply bg-app-bg` in `style.css` caused PostCSS error — custom JIT classes cannot be used with `@apply` in CSS files; removed all `@apply` calls with custom colour names
+- Custom Tailwind colour tokens (`bg-teal`, `bg-sidebar`, etc.) work in Vue templates via JIT scanning but NOT via `@apply`
+- `InitialiseTenantFromUser` middleware was missing `setPermissionsTeamId()` — found via Postman testing; all authenticated users were getting 403 on note endpoints; fixed and tests still passing
+
+---
+
 ## Phase 9 — Student Notes (Backend)
 
 **Completed.**
@@ -245,6 +273,38 @@ A record of each development phase: what was built, what decisions were made, wh
 - Bulk creation is a simple loop in the service — one `StudentNote` row per `student_id` with identical content. No junction table. This mirrors how Inspire works: each student gets their own note record for independent future management.
 - `GET /students/{student}/notes` uses nested routing (sub-resource URL) rather than `GET /notes/{studentId}` because `{student}` is resolved via route model binding, giving automatic cross-tenant 404 protection through BelongsToTenant's global scope without any controller code.
 - `POST /notes` is a flat route rather than nested under a student because the bulk create payload targets multiple students — nesting under one student ID would misrepresent the request's intent.
+
+---
+
+## Phase 10 — Vue SPA Setup (In Progress)
+
+**Status:** All files written. npm install not yet confirmed complete — run step 94 first on resume.
+
+**What was built this session:**
+- `src/types/index.ts` — all TypeScript interfaces matching every API response shape and request payload
+- `src/lib/utils.ts` — `cn()` helper (clsx + tailwind-merge) used by all shadcn-vue components
+- `src/lib/axios.ts` — Axios instance pointed at `http://backend.test/api`; request interceptor attaches `Authorization: Bearer {token}` from localStorage on every request
+- `src/router/index.ts` — Vue Router with `/login`, `/classes`, `/classes/:id`; navigation guard redirects unauthenticated users to `/login` and authenticated users away from `/login`
+- `src/stores/useAuthStore.ts` — Pinia store; `login()` posts credentials, then fetches full `/api/user` (with tenant); `logout()` hits the API and clears localStorage; `isAuthenticated` computed from token presence
+- `src/pages/LoginPage.vue` — login form with 401/422 error handling; redirects to `/classes` on success
+- `src/pages/ClassDashboard.vue` and `ClassDetailPage.vue` — placeholder pages for Phases 11 and 12
+- `src/components/ui/Button.vue`, `Input.vue`, `Label.vue` — owned shadcn-vue components
+- `src/App.vue` — replaced scaffold with `<RouterView />`
+- `src/main.ts` — registers Pinia (before router, required for nav guard) then Vue Router
+- `tailwind.config.js` — Tailwind with CSS custom property colour tokens
+- `postcss.config.js` — PostCSS with Tailwind and autoprefixer
+- `src/style.css` — replaced scaffold CSS with Tailwind directives and shadcn-vue CSS variable definitions
+- `vite.config.ts` — added `@` → `src/` path alias
+- `tsconfig.app.json` — added matching `paths` entry for TypeScript
+
+**Bug found and fixed during manual Postman testing (Phase 9):**
+- `InitialiseTenantFromUser` middleware was not calling `setPermissionsTeamId()` — all `$user->can()` checks returned false in real HTTP requests. Fixed by adding the call after `tenancy()->initialize()`. Tests were masking this because TestCase::setUp() calls it directly.
+
+**Next session: resume Phase 10 from step 94**
+1. Run `npm install vue-router@4 pinia axios class-variance-authority clsx tailwind-merge radix-vue lucide-vue-next` in `frontend/`
+2. Run `npm install -D tailwindcss postcss autoprefixer` in `frontend/`
+3. Run `npm run dev` and confirm the login page renders at the Vite dev server URL
+4. Test login end-to-end: sign in → redirect to `/classes` placeholder
 
 ---
 

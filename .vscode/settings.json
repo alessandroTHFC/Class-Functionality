@@ -15,5 +15,6 @@
       "username": "laravel",
       "password": "laravel"
     }
-  ]
+  ],
+  "snyk.advanced.autoSelectOrganization": true
 }
