@@ -6,6 +6,7 @@ const props = defineProps<{
   type?: string
   placeholder?: string
   disabled?: boolean
+  error?: boolean
   class?: string
 }>()
 
@@ -22,10 +23,13 @@ const emit = defineEmits<{
     :disabled="props.disabled"
     :class="
       cn(
-        'flex h-10 w-full rounded-sm border border-brand-border bg-card-bg px-3 py-2',
+        'flex h-10 w-full rounded-sm border bg-card-bg px-3 py-2',
         'text-sm text-text-primary placeholder:text-text-secondary',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-1',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
         'disabled:cursor-not-allowed disabled:opacity-50',
+        props.error
+          ? 'border-danger-text focus-visible:ring-danger-text'
+          : 'border-brand-border focus-visible:ring-teal',
         props.class,
       )
     "

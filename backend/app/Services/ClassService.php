@@ -28,7 +28,7 @@ class ClassService
     {
         return [
             'paginator' => $this->repository->list($filters),
-            'summary'   => $this->repository->summary(),
+            'summary'   => $this->repository->summary($filters),
         ];
     }
 

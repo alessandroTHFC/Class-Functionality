@@ -33,8 +33,10 @@ This document is the reference for all frontend work (Phases 10–13). It is der
 | Warning Text | `#D9822B` | |
 | Danger Background | `#FDE8E8` | Delete buttons, danger alerts |
 | Danger Text | `#D14343` | |
-| Purple Background | `#F2EDFF` | NCCD category badges |
+| Purple Background | `#F2EDFF` | **Secondary colour — students concept** |
 | Purple Text | `#6941C6` | |
+
+**Colour semantics:** Teal is the primary brand colour (classes, actions, navigation). Purple is the secondary colour and represents everything student-related — student stat cards, student count columns, student avatar fallbacks, enrolled student badges. This distinction is applied consistently across all pages and components.
 
 ### Border Radius
 - Small: `8px`
@@ -120,18 +122,25 @@ This creates a consistent visual distinction between staff and students througho
 ### Sidebar (`AppSidebar.vue`)
 - Background: `#042F33`
 - Width: 88px, fixed, full height
-- Icons only — no labels
+- Icons only — hover tooltips use shadcn `Tooltip` components (TooltipProvider wraps the entire aside)
 
 **Navigation items (top to bottom):**
-- Logo / brand mark at top
-- **Home** (Lucide: `Home`) — navigates to `/classes` (the dashboard)
-- **Account** (Lucide: `User`) — navigates to `/account` or shows a dropdown with user info
-- Spacer (push remaining to bottom)
-- **Logout** (Lucide: `LogOut`) — calls `POST /api/logout`, clears token, redirects to `/login`
+- Logo mark ("C" initials, teal background) at top
+- **Class Dashboard** (Lucide: `BookOpen`) — navigates to `/classes`; active state: `bg-white/10 text-white border-l-2 border-teal`; inactive: `text-white/50 hover:text-white hover:bg-white/5`
+- **Students** (Lucide: `Users`) — placeholder, no route; `text-white/25 cursor-default`
+- **Reports** (Lucide: `BarChart2`) — placeholder, no route; `text-white/25 cursor-default`
+- **Settings** (Lucide: `Settings`) — placeholder, no route; `text-white/25 cursor-default`
+- Spacer (flex-1 pushes bottom items down)
+- User initials avatar (`bg-teal text-white`, 36px circle) — clicking opens a shadcn Popover (right side, offset 12px) showing full name, tenant name, and role badges (teal-light pill)
+- **Logout** (Lucide: `LogOut`) — calls `POST /api/logout`, clears token, redirects to `/login`; tooltip: "Sign out"
 
-Active item: teal left border highlight, slightly lighter background tint.
+**shadcn:** TooltipProvider, Tooltip, TooltipTrigger, TooltipContent, Popover, PopoverTrigger, PopoverContent
 
-**shadcn:** custom sidebar, Tooltip (show label on hover)
+Active item: `bg-white/10 text-white border-l-2 border-teal`. Inactive: `text-white/50 hover:text-white hover:bg-white/5`.
+
+**Avatar initials:** Derived from `authStore.user?.name` — split on spaces, first character of each word, uppercased, max 2 characters.
+
+**Avatar popover:** Uses shadcn `Popover` (uncontrolled). `PopoverTrigger` renders the avatar button directly (no nested button). Content shows: name (semibold), tenant name (secondary), divider, role section with formatted role badges (slug converted to title case, e.g. "school-admin" → "School Admin").
 
 ---
 
@@ -146,14 +155,12 @@ Shared component used at the top of each page.
 
 ---
 
-## Stat Card (`StatCard.vue`)
-Reusable card used in stat summary rows.
+## Stat Card
+Stat cards use shadcn `Card`/`CardHeader`/`CardContent`/`CardTitle` components.
 
-**Structure:** Icon → Large number (H2) → Label → Subtext
+**Structure:** Icon (coloured square bg, 36×36) → Stat number → Label
 
-**Spec:** Height 140px, border radius 16px, padding 24px, card default shadow.
-
-**shadcn:** Card
+**Icon colour:** All stat card icons use `bg-purple-bg` with `text-purple-text` — purple is applied uniformly across the stat row as a design choice.
 
 ---
 
@@ -209,16 +216,18 @@ Pagination
 > **API note:** These three totals need to come from the backend. Add a `summary` object to the `GET /api/classes` response meta, or create a dedicated `GET /api/dashboard/stats` endpoint.
 
 ### Filter Bar
-Layout: Search (40%) — Teacher filter (25%) — Year Level filter (25%) — Create button (10%)
+Layout: 12-column CSS grid — Search (`col-span-5`) — Teacher filter (`col-span-3`) — Year Level filter (`col-span-3`) — Create button (`col-span-1`)
 
-**shadcn:** Card, Input, Select, Button
+**shadcn:** Input, Select, Button
 
 | Element | shadcn | Detail |
 |---|---|---|
 | Search | Input | Left icon: `Search`, placeholder: "Search classes by name..." |
-| Teacher filter | Select | Populated from `GET /api/users` |
-| Year level filter | Select | Populated from `GET /api/year_levels` |
+| Teacher filter | Select | Populated from `GET /api/users`; null maps to `"all"` sentinel |
+| Year level filter | Select | Populated from `GET /api/year_levels`; null maps to `"all"` sentinel |
 | Create Class | Button (primary) | Icon: `Plus`, text: "Create Class" |
+
+> **Select null/string conversion:** Radix Vue Select requires non-empty string values. Nullable filter refs use `"all"` as the sentinel value, converted via `computed` get/set wrappers in the component.
 
 **Filter trigger behaviour — no search button:**
 - **Text search:** debounced — the API call fires automatically ~300ms after the user stops typing. Clears results and resets to page 1 on each new search.
@@ -250,7 +259,12 @@ Triggered by "Create Class" or "Edit" from the actions dropdown. All data is sav
 
 **shadcn:** Dialog, Input, Select, Button, Badge, ScrollArea
 
-### Layout — 2 columns inside the dialog
+### Dialog dimensions
+- Width: `w-[90vw] max-w-6xl`
+- Height: `max-h-[88vh]`
+- Teleported to `<body>` via Vue `<Teleport>`; fade `<Transition>` on open/close
+
+### Layout — 2 columns inside the dialog (CSS grid, col-span-5 / col-span-7)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -258,33 +272,39 @@ Triggered by "Create Class" or "Edit" from the actions dropdown. All data is sav
 │                               │                              │
 │  Class Name [_____________]   │  [Search students...      ]  │
 │                               │  ┌──────────────────────┐    │
-│  Teacher    [____________▼]   │  │ Bart Simpson    QDTP +│   │
+│  [Assign Staff▼] [Yr Lvl▼]   │  │ Bart Simpson    QDTP +│   │
 │                               │  │ Lisa Simpson    Supp ✓│   │
-│  Year Level [____________▼]   │  │ Emily Clarke    Subs +│   │
-│                               │  │ ...                   │   │
-│  Enrolled students:           │  └──────────────────────┘    │
-│  [Bart ×] [Emily ×]           │  (scrollable)                │
-│                               │                              │
-│              [Cancel]  [Save] │                              │
+│  Enrolled students:           │  │ Emily Clarke    Subs +│   │
+│  [Bart ×] [Emily ×]           │  │ ...                   │   │
+│                               │  └──────────────────────┘    │
+│              [Cancel]  [Save] │  (paginated, 10/page)        │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ### Left Column — Class Details
 
+The left column uses a nested 2-column grid for the Assign Staff and Year Level row.
+
 | Field | Component | Source | Notes |
 |---|---|---|---|
-| Class Name | Input | — | Required |
-| Teacher | Select (multi) | `GET /api/users` | Multi-select dropdown; can assign multiple staff |
-| Year Level | Select | `GET /api/year_levels` | Optional |
-| Selected students | Badge list | Local state | Populated by the student picker (right column) |
+| Class Name | Input | — | Required; full width |
+| Assign Staff | Select (multiple) | `GET /api/users` | Multi-select; trigger shows "No staff assigned" / staff name / "N staff members" |
+| Year Level | Select | `GET /api/year_levels` | Optional; "none" sentinel for null |
+| Enrolled students | Badge list | Local state | Populated by the right-column student picker |
 
-Each selected student appears as a badge showing their name with an `×` icon. Clicking `×` removes them from the local selection without any API call.
+**Assign Staff and Year Level** are placed side-by-side in a `grid grid-cols-2 gap-3` row beneath Class Name.
+
+**Multi-select implementation:** The shadcn `Select` component supports a `multiple` prop. Internally, when `multiple` is true, `Select` uses `PopoverRoot` (open/close) + `ListboxRoot` (multi-selection via Radix Vue) instead of `SelectRoot`. `SelectTrigger`, `SelectContent`, and `SelectItem` all detect the mode via Vue `provide/inject` and render the appropriate Radix primitive. The trigger displays a computed label; `string[]` values are converted to/from `number[]` in the form via a computed wrapper.
+
+Each selected student appears as a `<Badge variant="purple">` (pill shape) with an `×` icon. Clicking `×` removes them from local selection with no API call.
 
 ### Right Column — Student Picker
 
-- Search input at the top (debounced, filters the list as the user types)
-- Scrollable list of all tenant students from `GET /api/students`
-- Each row: student name + NCCD level + action icon on the right
+- Filter row uses a `grid grid-cols-5 gap-2`: search Input on `col-span-3`, year level Select wrapper on `col-span-2`
+- No outer border on the table container — the table sits directly in the column
+- shadcn Table (TableHeader/TableBody/TableRow/TableHead/TableCell) with `px-4 py-3` cell padding
+- Pagination: shadcn Pagination/PaginationPrevious/PaginationNext components (wrapping Radix Vue `PaginationRoot`/`PaginationPrev`/`PaginationNext`). `PaginationRoot` receives `total` (item count) and `items-per-page`; `PaginationPrev`/`PaginationNext` auto-disable at page boundaries via context.
+- `overflow-hidden` on the right column div is required so the inner `flex-1` table area is properly bounded by the dialog height, keeping the pagination footer pinned to the bottom via `flex-shrink-0`
 
 **Student row states:**
 | State | Icon | Behaviour |
@@ -556,7 +576,20 @@ The skeleton is shown while the composable's `isLoading` ref is `true`. Once the
 
 ---
 
-#### 3. Student Panel Loading (student selection)
+#### 3. Dialog Loading (ClassFormDialog)
+
+`ClassFormDialog` has two internal skeleton states, both using `Skeleton` rows:
+
+| State | Trigger | Skeleton content |
+|---|---|---|
+| `loadingStudents` | Dialog opens (any mode) — `GET /api/students` in flight | Table header + 6 skeleton rows (Name, Year Level, Enrol columns) in the right-column student picker |
+| `loadingDetail` | Edit mode only — `GET /api/classes/{id}` in flight | Full two-column skeleton: left column shows label + input skeletons for Name, Assign Staff, Year Level, and 3 badge pill skeletons for Enrolled Students; right column shows label, filter row, and 6 row skeletons |
+
+Once both fetches resolve, the real form content replaces the skeleton. The two fetches run concurrently.
+
+---
+
+#### 4. Student Panel Loading (student selection)
 
 When the user clicks a different student in the student list, the student panel on the right must reload with that student's data (NCCD details + notes). The student list remains visible and interactive during this load — only the panel content changes.
 
@@ -572,11 +605,27 @@ For notes: show a small skeleton (3–4 note row skeletons) inside the Notes tab
 
 ---
 
-### Inline Form Validation
+### Form Validation
 
-When a `POST` or `PUT` returns a `422` from the backend, field-level error messages are shown beneath each invalid input inside the form/dialog. The toast is **not** used for validation errors — the form itself surfaces them.
+Two layers of validation exist in `ClassFormDialog`:
 
-**shadcn:** use the `FormItem` / `FormMessage` pattern from shadcn form components.
+**Layer 1 — Frontend (before API call)**
+
+A `validate()` function runs on save. If mandatory fields are empty it:
+1. Populates the `errors` ref with field-level messages (displayed inline beneath each field in red)
+2. Fires `toast.warning("Please fill in all mandatory fields before saving.")` — a yellow Sonner toast
+3. Returns `false`, aborting the API call
+
+| Field | Rule |
+|---|---|
+| Class name | Required — cannot be blank |
+| Assign Staff | Min 1 staff member must be selected |
+| Enrolled Students | Min 1 student must be enrolled |
+| Year Level | Optional — no validation |
+
+**Layer 2 — Backend (422 response)**
+
+When a `POST` or `PUT` returns a `422`, Laravel's field errors are mapped into the same `errors` ref and shown inline beneath each field. The `errors` ref is cleared at the start of every save attempt, so stale messages never persist.
 
 ---
 

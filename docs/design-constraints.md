@@ -65,6 +65,7 @@ frontend/
 | Thing | Convention | Example |
 |---|---|---|
 | Page components | PascalCase, descriptive | `ClassDashboard.vue`, `ClassDetail.vue` — all `.vue` files use `<script setup lang="ts">` |
+| Layout components | PascalCase | `AppLayout.vue` — wraps all authenticated pages; owns the sidebar; never duplicated |
 | Shared components | PascalCase | `BulkNoteModal.vue`, `StudentPanel.vue` |
 | Composables | camelCase, `use` prefix | `useClasses.ts`, `useAuth.ts` |
 | Pinia stores | camelCase, `use` prefix | `useAuthStore.ts`, `useReferenceStore.ts` — class list data is NOT stored in Pinia; it lives in a local `classList` ref on the page component |
@@ -141,8 +142,26 @@ frontend/
 - All API calls are made inside composables or Pinia stores — never directly in page or component files
 - The Axios instance is configured once in `src/lib/axios.ts` with the base URL and auth interceptor
 - The auth token is stored in `localStorage` and attached to all requests via an Axios request interceptor
+- A dev-only response interceptor adds an 800ms artificial delay (`import.meta.env.DEV` guard) so skeleton loaders are visible during development — remove before production deployment
 - Vue Router guards redirect unauthenticated users to `/login`
 - Components receive data via props — they do not fetch their own data
+
+### UI Components — shadcn First
+
+**Always use a shadcn-vue component where one exists. Never build a manual equivalent from raw HTML.**
+
+This applies to every UI element: cards, tables, dropdowns, dialogs, inputs, buttons, badges, popovers, pagination, and so on. If a shadcn component exists in `src/components/ui/`, use it. If a needed component does not exist yet, create it in `src/components/ui/` following the existing shadcn pattern (wrapping Radix Vue primitives, styled with Tailwind, using `cn()` for class merging) — do not write a one-off inline implementation.
+
+Raw `<div>`, `<table>`, `<select>`, `<button>` elements are not acceptable as substitutes for a shadcn component.
+
+### Layouts — CSS Grid with col-spans
+
+**Predominant layout mechanism is CSS grid with explicit `col-span-N` widths. Flexbox is reserved for single-axis alignment within a cell.**
+
+- Page-level and section-level layouts use `grid grid-cols-12` (or a suitable N-column grid) with children specifying `col-span-N`
+- This applies to filter bars, dialog columns, form field rows, and stat card rows
+- Avoid using percentage widths (`w-[40%]`) or fixed pixel widths to define proportional widths — express proportion as col-spans instead
+- Flexbox (`flex`, `items-center`, `gap-*`) is appropriate for aligning content *within* a grid cell (e.g. icon + label side by side), not for defining the overall proportional layout
 
 ---
 

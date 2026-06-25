@@ -93,14 +93,14 @@ This is the sequential build roadmap. Each step should be completed and verified
 
 **Goal:** A single `php artisan db:seed` creates one fully-populated demo school.
 
-48. Create `RolesAndPermissionsSeeder` — seeds all roles and permissions (see `docs/rbac.md`)
-49. Create `TenantSeeder` — creates the demo tenant, initialises tenancy context, calls sub-seeders
-50. Create `UserSeeder` — creates one user per role (coordinator, teacher, teachers-assistant, read-only, school-admin) with realistic names and emails
-51. Create `YearLevelSeeder` — seeds Foundation through Year 12
-52. Create `StudentSeeder` — seeds ~30 students with varied NCCD data across year levels
-53. Create `ClassSeeder` — seeds 3–5 classes with students enrolled and staff assigned
-54. Register all seeders in `DatabaseSeeder.php`
-55. Run `php artisan db:seed` and verify data in SQLTools
+48. ✅ Create `RolesAndPermissionsSeeder` — seeds all roles and permissions (see `docs/rbac.md`)
+49. ✅ Create `TenantSeeder` — creates the demo tenant, initialises tenancy context, calls sub-seeders
+50. ✅ Create `UserSeeder` — creates one user per role (coordinator, teacher, teachers-assistant, read-only, school-admin) with realistic names and emails
+51. ✅ Create `YearLevelSeeder` — seeds Foundation through Year 12
+52. ✅ Create `StudentSeeder` — seeds ~30 students with varied NCCD data across year levels
+53. ✅ Create `ClassSeeder` — seeds 3–5 classes with students enrolled and staff assigned
+54. ✅ Register all seeders in `DatabaseSeeder.php`
+55. ✅ Run `php artisan db:seed` and verify data in SQLTools
 
 ---
 
@@ -317,16 +317,28 @@ export interface StoreNotePayload {
 
 **Goal:** Authenticated users can see a paginated, searchable list of classes.
 
-**Architecture note:** The class list is held in a local `classList` ref inside `ClassDashboard.vue` — not a Pinia store. This ensures the list is always fresh on navigation (no stale data if another user creates a class). Year levels and staff users are fetched once and stored in a shared `useReferenceStore` Pinia store since they are seeded/rarely change and are needed by both the filter bar and the form dialog.
+**Architecture note:** The class list is held in a local `classList` ref inside `ClassDashboard.vue` — not a Pinia store. This ensures the list is always fresh on navigation (no stale data if another user creates a class). Year levels and staff users are fetched once and stored in a shared `useReferenceStore` Pinia store since they are seeded/rarely change and are needed by both the filter bar and the form dialog. All authenticated pages are wrapped in `AppSidebar.vue` — an 88px icon-only sidebar component (logo mark, `BookOpen` nav icon with active border, user initials avatar, `LogOut` icon) that wraps page content via `<slot />`.
 
-102. Create `src/stores/useReferenceStore.ts` — Pinia store that fetches and caches year levels (`GET /api/year_levels`) and staff users (`GET /api/users`); called once on `ClassDashboard` mount
-103. Create `src/composables/useClasses.ts` — wraps API calls (list, create, update, delete); returns `classList` ref, pagination state, and filter state; `fetchClasses()` replaces `classList.value` on every call
-104. Create `ClassDashboard.vue` page — declares local `classList` ref populated by `useClasses`; renders a table/card list of classes with search input and pagination
-105. Create `ClassFormDialog.vue` — modal for create and edit; year level select and staff multi-select drawn from `useReferenceStore`; student multi-select fetched from `GET /api/students` on dialog open
-106. Wire up create class button → dialog → `POST /api/classes` → call `fetchClasses()` to refresh `classList`
-107. Wire up edit button → dialog pre-populated → `PUT /api/classes/{id}` → call `fetchClasses()` to refresh `classList`
-108. Install `vue-sonner` and add `<Toaster />` to `App.vue` — provides the global toast renderer; theamed via `toastOptions` to match ClassHub colours; used for confirmations, success, and error feedback across the whole SPA
-109. Wire up delete button → `toast('Please confirm…', { duration: Infinity, action: { label: 'Yes, delete', onClick: () => deleteClass(id) }, cancel: { label: 'No' } })` — no composable or custom component needed
+102. ✅ Create `src/stores/useReferenceStore.ts` — Pinia store that fetches and caches year levels (`GET /api/year_levels`) and staff users (`GET /api/users`); `load()` guards with a `loaded` flag so it only hits the API once per session
+103. ✅ Create `src/composables/useClasses.ts` — wraps all class API calls (list, create, update, delete); returns `classList` ref, `meta`, pagination and filter state; CRUD methods do NOT auto-refresh — `ClassDashboard` calls `fetchClasses()` explicitly so only one re-fetch happens per mutation
+103a. ✅ Create `src/components/AppSidebar.vue` — 88px icon-only shared layout wrapper; `BookOpen` nav icon with `border-l-2 border-teal bg-white/10` active state; user initials avatar (`bg-teal-light text-teal`); `LogOut` icon at the bottom; `<slot />` for page content
+104. ✅ Create `ClassDashboard.vue` page — wrapped in `<AppSidebar>`; local `classList` ref; stat cards (Total Classes, Total Students, Teachers Assigned); filter bar (search debounced 300ms, year level select, staff select, Clear filters); class table with RouterLink name, year level, staff, student count, edit/delete icons; pagination; delete confirmation via vue-sonner
+105. ✅ Create `ClassFormDialog.vue` — 2-column modal (`max-w-3xl`, Teleported to body); left column: class name, staff checkboxes, year level select, selected student badge chips (teal-light, removable); right column: paginated student table (10 per page) with name/year-level filter, Plus/Check icons, "Showing X–Y of Z" footer
+106. ✅ Wire up create class button → dialog → `POST /api/classes` → `fetchClasses()` refresh → success toast
+107. ✅ Wire up edit button → dialog pre-populated via `GET /api/classes/{id}` (to retrieve enrolled student IDs) → `PUT /api/classes/{id}` → `fetchClasses()` refresh → success toast
+108. ✅ Install `vue-sonner` → `npx shadcn-vue@latest add sonner`; add `<Sonner />` wrapper component and mount `<Sonner />` once in `App.vue`
+109. ✅ Wire up delete button → `toast('Please confirm you want to delete Class "Name"', { duration: Infinity, action: { label: 'Yes, delete', onClick }, cancel: { label: 'No' } })`
+
+**Outstanding — required to complete Phase 11:**
+
+109a. ❌ Build `GET /api/students` backend endpoint — currently returns 404; needed by `ClassFormDialog` to populate the student picker on dialog open
+  - Create `app/Http/Resources/StudentListResource.php` — shape: `{ id, full_name, given_name, family_name, year_level }`
+  - Create `app/Policies/StudentPolicy.php` — `viewAny()` checks `view students` permission (already seeded, all roles have it)
+  - Create `app/Repositories/StudentRepository.php` — `list(array $filters)`: query with `yearLevel` eager-loaded, ordered alphabetically by `family_name` then `given_name`, filtered by `search` and `year_level_id`, paginated with `per_page` defaulting to 100
+  - Create `app/Http/Controllers/StudentController.php` — `index()`: authorize, call repository, return `StudentListResource::collection()`
+  - Register route in `routes/api.php` inside `auth:sanctum` + `tenant` group: `Route::get('/students', [StudentController::class, 'index'])`
+
+109b. ❌ Add alphabetical sort to `filteredStudents` computed in `ClassFormDialog.vue` — `.sort((a, b) => a.full_name.localeCompare(b.full_name))` (belt-and-suspenders: backend already orders, but client-side sort preserves order after filtering)
 
 ---
 

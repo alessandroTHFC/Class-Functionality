@@ -45,22 +45,32 @@ class ClassRepository
     }
 
     /**
-     * Return tenant-wide aggregate stats for the dashboard summary card.
+     * Return aggregate stats for the dashboard summary cards, scoped to the same filters
+     * applied to the class list so all three stat card values stay in sync.
      *
-     * These run on unfiltered data — the summary always reflects the whole tenant,
-     * regardless of what search/filter the user has applied to the class list.
+     * The same filter conditions used in list() are applied here to the $classIds subquery.
+     * The pivot tables (class_students, class_users) have no tenant_id column — isolation
+     * is achieved by scoping $classIds through BelongsToTenant on SchoolClass, then passing
+     * that as a whereIn subquery so the database resolves it in one round-trip.
      *
-     * Laravel concepts:
-     * - SchoolClass::select('id') builds a subquery. Passing it to whereIn() lets the
-     *   database resolve the class IDs in one round-trip rather than loading them into PHP.
-     * - BelongsToTenant scopes SchoolClass to the current tenant automatically, so the
-     *   subquery is already tenant-scoped — ClassStudent itself has no tenant_id column.
-     * - distinct('student_id')->count('student_id') counts unique students across all classes
-     *   (a student enrolled in two classes counts once, not twice).
+     * distinct() on the pivot counts ensures a student enrolled in two filtered classes
+     * is counted once, not twice.
      */
-    public function summary(): array
+    public function summary(array $filters = []): array
     {
         $classIds = SchoolClass::select('id');
+
+        if (! empty($filters['search'])) {
+            $classIds->search($filters['search']);
+        }
+
+        if (! empty($filters['year_level_id'])) {
+            $classIds->where('year_level_id', $filters['year_level_id']);
+        }
+
+        if (! empty($filters['user_id'])) {
+            $classIds->whereHas('users', fn ($q) => $q->where('users.id', $filters['user_id']));
+        }
 
         return [
             'total_students'    => ClassStudent::whereIn('class_id', $classIds)

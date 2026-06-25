@@ -334,3 +334,144 @@ A record of each development phase: what was built, what decisions were made, wh
 
 ---
 
+## Phase 11 — Class Dashboard (Frontend)
+
+**Status: Nearly complete — one backend endpoint outstanding.**
+
+**What was built:**
+
+- `src/stores/useReferenceStore.ts` — Pinia setup store; fetches year levels (`GET /api/year_levels`) and staff users (`GET /api/users`) in parallel on first `load()` call; `loaded` flag prevents repeat fetches across the session; used by both the dashboard filter bar and the class form dialog
+- `src/composables/useClasses.ts` — composable owning all class API interactions; exposes `classList` (local ref), `meta`, `loading`, `error`, filter refs (`search`, `yearLevelId`, `userId`, `page`), and CRUD methods (`fetchClasses`, `createClass`, `updateClass`, `deleteClass`); CRUD methods deliberately do NOT auto-refresh — `ClassDashboard` calls `fetchClasses()` explicitly in `onSaved()` and `handleDelete()` so only one re-fetch occurs per mutation
+- `src/components/AppSidebar.vue` — 88px icon-only shared layout wrapper used by all authenticated pages; logo mark at top; `BookOpen` nav icon with `border-l-2 border-teal bg-white/10` active state; user initials avatar at bottom (`bg-teal-light text-teal`, derived from `authStore.user?.name`); `LogOut` icon; exposes `<slot />` for page content; wraps the entire page via a flex row
+- `src/components/ui/Sonner.vue` — thin wrapper around vue-sonner's `<Toaster>` component (bottom-right, `richColors: true`); mounted once in `App.vue`
+- `src/pages/ClassDashboard.vue` — full dashboard page wrapped in `<AppSidebar>`; stat cards (Total Classes, Total Students, Teachers Assigned pulled from `meta.summary`); filter bar (search debounced 300ms via `watch`, year level select, staff select, "Clear filters" ghost button); class table with RouterLink name, year level, comma-joined staff, student count, edit/delete icon buttons; server-side pagination (Previous/Next with "Page X of Y · N classes"); delete confirmation via vue-sonner
+- `src/components/ClassFormDialog.vue` — 2-column modal (`max-w-3xl`, Teleported to `<body>`, fade Transition); left column: class name input, staff checkbox list, year level select, selected student badge chips (teal-light pills with × remove button); right column: student picker with name search and year level filter, paginated table (10 rows per page, Name/Year Level/Enrol columns), Plus icon (add) / Check icon (already enrolled), "Showing X–Y of Z students" pagination footer
+
+**Key decisions made this phase:**
+
+- **`classList` is a local ref, not a Pinia store** — user identified that a Pinia class store could serve stale data if another user adds a class between navigations. Local ref in `ClassDashboard` is always re-fetched on mount and after every mutation.
+- **`useClasses()` does not auto-refresh** — `ClassFormDialog` imports `useClasses()` to get `createClass`/`updateClass` methods only; it creates a separate composable instance with its own (unused) `classList`. If the composable auto-refreshed, it would trigger a wasted API call against the dialog's isolated list. The caller (dashboard) is always responsible for calling `fetchClasses()`.
+- **`wasEditing` captured before `closeDialog()`** — `editTarget.value` is cleared by `closeDialog()`. The success toast message ("Class updated" vs "Class created") must be determined before close is called, so `const wasEditing = !!editTarget.value` is captured first.
+- **vue-sonner used for delete confirmation** — a custom `ConfirmToast.vue` component was initially drafted and rejected by the user who noted shadcn-vue already includes Sonner. `toast()` with `duration: Infinity`, `action: { label: 'Yes, delete', onClick }`, and `cancel: { label: 'No' }` replaces the entire custom approach.
+- **AppSidebar is 88px icon-only** — initially implemented at 256px with labels. After user reviewed the original design image, they requested reverting to the icon-only layout. Width changed from `w-64` to `w-[88px]`, all label text removed.
+- **Student picker is a paginated table, not a scrollable flat list** — user specified the right column should show all students immediately (alphabetical order), filterable client-side by name and year level, with pagination (10 per page) rather than an infinite scroll. Students are loaded on dialog open via a `watch(() => props.open, ...)` watcher and filtered fully client-side — no extra API calls when searching.
+- **Plus/Check icons, not checkboxes** — design spec requires a Plus icon button (teal, clickable) when a student is not enrolled, and a static Check icon (grey) when they are. Selected students appear as removable badge chips in the left column.
+- **Edit mode loads enrolled student IDs from `GET /api/classes/{id}`** — `ClassListItem` only carries `student_count`; the full enrolled student ID list is needed to pre-select the picker. `ClassFormDialog` calls the class detail endpoint on open in edit mode.
+
+**Outstanding — required to close Phase 11:**
+
+1. **`GET /api/students` backend endpoint (404)** — `ClassFormDialog` calls this endpoint on dialog open to load the student list. It currently returns 404 because the route, controller, policy, repository, and resource do not exist.
+   - `app/Http/Resources/StudentListResource.php` — shape: `{ id, full_name, given_name, family_name, year_level }`
+   - `app/Policies/StudentPolicy.php` — `viewAny()` checks `view students` (permission already seeded; all roles have it)
+   - `app/Repositories/StudentRepository.php` — `list(array $filters)`: eager-loads `yearLevel`, ordered `family_name` then `given_name`, filtered by `search` (LIKE on both name fields) and `year_level_id`, paginated with `per_page` defaulting to 100
+   - `app/Http/Controllers/StudentController.php` — `index()`: authorize, call repository, return `StudentListResource::collection()`
+   - `routes/api.php` — `Route::get('/students', [StudentController::class, 'index'])` inside `auth:sanctum` + `tenant` group
+
+2. **Alphabetical sort in `ClassFormDialog.vue`** — add `.sort((a, b) => a.full_name.localeCompare(b.full_name))` to the `filteredStudents` computed. The backend returns students ordered by `family_name` then `given_name`, but client-side sort ensures order is preserved after filtering changes the set.
+
+---
+
+## Phase 11 — UI Polish & Fixes
+
+**Status: Complete.**
+
+A dedicated polish pass on Phase 11 output before moving to Phase 12. Items worked through one at a time with user approval between each.
+
+**What was changed:**
+
+- **Filter bar layout (Item 1)** — converted from a flex row to a 12-column CSS grid (`col-span-5/3/3/1`) giving proportional widths to each filter element. Year Level and Staff filter dropdowns converted from native `<select>` to shadcn `Select` components. Null filter state uses `"all"` sentinel with computed get/set wrappers (Radix Vue Select requires non-empty strings).
+
+- **Shadcn components audit (Item 1 extension)** — user identified that the dashboard was using raw divs instead of shadcn components. Full audit performed; all relevant elements migrated: stat cards → shadcn Card/CardHeader/CardContent/CardTitle; filter dropdowns → shadcn Select; class table → shadcn Table/TableHeader/TableBody/TableRow/TableHead/TableCell; edit/delete buttons → Button `variant="ghost" size="icon"` (added `size="icon"` to Button.vue).
+
+- **Stat card icon backgrounds (Item 3)** — all three stat card icons use `bg-purple-bg text-purple-text`. Purple was established as the secondary colour / students-concept colour at this point.
+
+- **Summary stats filtered (Item 4)** — `ClassRepository::summary()` was previously running on unfiltered data. Updated to accept `array $filters` and apply the same search/year_level/user_id conditions as the `list()` query. `ClassService` updated to pass the active filters through to `summary()`.
+
+- **Sidebar avatar — initials contrast (Item 5)** — avatar changed from `bg-teal-light text-teal` to `bg-teal text-white` (matches the logo mark). Root cause of missing initials investigated: `useAuthStore` was storing the Laravel JsonResource wrapper `{ data: { ... } }` as the user object instead of unwrapping it. Fixed by changing `user.value = res.data` to `user.value = res.data.data`. Users must log out and back in to clear stale localStorage.
+
+- **Sidebar avatar popover (Item 5 extension)** — shadcn Popover added to the avatar showing full name, tenant name, and formatted role badges. Popover uses uncontrolled mode (no `open` prop bound). Two bugs resolved: (1) `as-child` on `PopoverTrigger` does not work through Vue slot abstraction — removed in favour of a direct class-prop approach; (2) passing `:open="undefined"` explicitly to `PopoverRoot` triggers Radix Vue's controlled mode — fixed by removing all props from `Popover.vue` and leaving `PopoverRoot` bare.
+
+- **`GET /api/users` endpoint created (Item 2)** — `UserController` and `UserResource` created; route added to `api.php`; `useReferenceStore` already called this endpoint. Staff dropdowns now populate correctly.
+
+- **Dialog width and height (Item 6)** — dialog widened to `w-[90vw] max-w-6xl`, height capped at `max-h-[88vh]`.
+
+- **Dialog column layout (Item 6 extension)** — two-column layout changed from flex to a 12-column CSS grid with left column `col-span-5` and right column `col-span-7`.
+
+- **Assign Staff + Year Level in same row (Item 7)** — left column reorganised to: Class Name (full width) → Assign Staff + Year Level (2-col grid side by side) → Enrolled Students (full width). Staff assignment converted from a checkbox list to a proper shadcn multi-select dropdown.
+
+- **shadcn Select multi-select support** — all five Select components updated to support a `multiple` prop via Vue `provide/inject`. When `multiple` is true: `Select` renders `PopoverRoot` instead of `SelectRoot`; `SelectTrigger` renders `PopoverTrigger`; `SelectContent` renders `PopoverPortal` + `PopoverContent` + `ListboxRoot` (Radix Vue) + `ListboxContent`; `SelectItem` renders `ListboxItem` + `ListboxItemIndicator`. Single-select mode is unchanged. Model value is `string | string[]`; the form uses a computed wrapper to convert `number[]` ↔ `string[]` at the Select boundary.
+
+**Key decisions made this phase:**
+
+- **Purple as secondary colour** — user chose to use `bg-purple-bg text-purple-text` for stat card icons (all three, not just student-related). Purple is now documented as the secondary colour representing the students concept throughout the app.
+- **Shadcn components over raw HTML** — user confirmed: all UI elements should use shadcn components where one exists. Raw `<div>`, `<table>`, `<select>` are not acceptable if a shadcn equivalent is available.
+- **Popover uncontrolled mode** — do not bind `:open` on `PopoverRoot` unless explicitly managing open state from the parent. Binding `:open="undefined"` still enters controlled mode and breaks toggle behaviour.
+- **Multi-select uses ListboxRoot, not SelectRoot** — Radix Vue `SelectRoot` (v1.x) is single-select only. Multi-select is implemented via `ListboxRoot` (which has a `multiple` prop) wrapped inside a `PopoverRoot` for dropdown behaviour. This matches how shadcn-vue implements `<Select multiple>` internally.
+- **Staff IDs stay as `number[]` in form state** — `form.userIds` remains `number[]`; conversion to/from `string[]` is handled at the Select boundary via a computed wrapper, not inside the form or payload.
+
+- **Dialog right column — table, filters, and pagination (Item 8)** — removed the outer `border border-brand-border rounded-sm` container around the student table. Converted raw `<table>/<thead>/<tbody>/<tr>/<th>/<td>` to shadcn Table/TableHeader/TableBody/TableRow/TableHead/TableCell components (which have more generous `px-4 py-3` padding vs the previous `px-3 py-2.5`). Converted the native `<select>` year level filter to a shadcn Select. Filter row changed from `flex gap-2` to `grid grid-cols-5 gap-2` with Input on `col-span-3` and the Select wrapper on `col-span-2`. Pagination converted from raw `<button>` elements to shadcn Pagination/PaginationPrevious/PaginationNext components (wrapping Radix Vue `PaginationRoot`/`PaginationPrev`/`PaginationNext`). Also fixed a layout bug where the pagination was being pushed out of view: the right column was missing `overflow-hidden`, so `flex-1` on the inner table container had no bounded height to grow into. Added `overflow-hidden` to the right column div to properly constrain the flex layout. New components created: `Pagination.vue`, `PaginationPrevious.vue`, `PaginationNext.vue`.
+
+- **Dialog header colour (Item 9)** — header background changed to `bg-teal` with `text-white` title and `text-white/70 hover:text-white hover:bg-white/10` close button. Added `rounded-t-sm` to clip the header against the card's border-radius (fixes a white gap visible at the top corners).
+
+- **shadcn Badge component + enrolled student badges** — created `Badge.vue` in `src/components/ui/` using CVA with variants: `default` (teal-light), `secondary` (app-bg + brand-border), `outline`, `purple`, `success`, `warning`, `danger`. Enrolled student badges in ClassFormDialog left column replaced from raw `<span>` to `<Badge variant="purple">` — purple is the secondary/students-concept colour. New component created: `Badge.vue`.
+
+---
+
+## Pre-Phase 12 Polish
+
+**Status: Complete — Groups A, B, and C done.**
+
+### Group A — Sidebar (AppSidebar.vue)
+
+- **shadcn Tooltip components** — created `TooltipProvider.vue`, `Tooltip.vue`, `TooltipTrigger.vue`, `TooltipContent.vue` wrapping Radix Vue primitives. `TooltipProvider` wraps the entire aside so all icons share one tooltip context. Native `title` attributes removed throughout. New components: `TooltipProvider.vue`, `Tooltip.vue`, `TooltipTrigger.vue`, `TooltipContent.vue`.
+
+- **Tooltip label renamed** — "Classes" → "Class Dashboard" on the BookOpen nav icon.
+
+- **Placeholder nav icons** — added three non-functional nav icons below Class Dashboard: Students (`Users`), Reports (`BarChart2`), Settings (`Settings`). All use `text-white/25 cursor-default` to visually distinguish them from active nav items. No route, no click handler — placeholders for future pages.
+
+- **Logout tooltip** — logout button wrapped in `Tooltip` (label: "Sign out"). Native `title` attribute removed.
+
+### Group B — Skeleton Loaders
+
+- **shadcn `Skeleton.vue`** — new component in `src/components/ui/`. Wraps a single `animate-pulse rounded-sm bg-gray-200` div. Accepts a `class` prop for size overrides via `cn()`.
+
+- **ClassDashboard skeletons** — while `loading` is true: stat card row replaced by 3 skeleton `Card` components (title line + icon box + number line); class table replaced by a matching 5-column `Table` with 5 skeleton rows (name, year level, staff, students, action buttons). Once data resolves, real content renders.
+
+- **ClassFormDialog skeletons** — two distinct states:
+  - `loadingStudents` (dialog open, any mode): student picker right column shows Table with header + 6 skeleton rows matching the 3-column structure (Name, Year Level, Enrol).
+  - `loadingDetail` (edit mode only): full two-column skeleton replacing the entire form body — left column has label + input skeletons for Class Name, Assign Staff, Year Level, and pill-shaped badge skeletons for Enrolled Students; right column has label, filter row, and 6 row skeletons.
+
+- **Dev-only axios delay** — 800ms response interceptor added to `src/lib/axios.ts` behind `import.meta.env.DEV` guard. Makes skeleton loaders visible during local development. Zero impact on production builds. Remove before Railway deployment.
+
+### Group C — Form Validation + Toast (ClassFormDialog.vue)
+
+- **Frontend `validate()` function** — runs before every API call. Checks: class name not blank, at least 1 staff member, at least 1 student. If any fail: populates `errors` ref with field-level messages, fires `toast.warning("Please fill in all mandatory fields before saving.")`, returns `false` to abort the API call.
+
+- **Inline field errors** — the three mandatory fields already had `<p v-if="errors.X">` slots in the template (`errors.name`, `errors.user_ids`, `errors.student_ids`). Frontend validation reuses the same slots — no new template markup needed.
+
+- **`toast` import** — added `import { toast } from "vue-sonner"` to ClassFormDialog. The Sonner instance was already mounted in `App.vue`.
+
+- **Error reset** — `errors.value = {}` runs at the top of `handleSave()` on every attempt, clearing both frontend and API error messages before re-validating.
+
+**⚠️ Technical Debt Note — Form Validation Approach**
+
+The current validation implementation (manual `validate()` function, `errors` ref, watchers per field, toast) is functional but verbose for what it does. Alessandro raised a concern about the amount of boilerplate involved.
+
+shadcn-vue ships `Form`, `FormField`, `FormItem`, `FormControl`, and `FormMessage` components built on **vee-validate + zod** that handle all of this automatically — schema declaration, per-field error state, clearing on change, inline messages — with no custom code. Adopting this would replace the entire validation block with a zod schema and remove the manual watches entirely.
+
+**Decision:** Keep the current implementation for `ClassFormDialog` as it already works. However, any new form introduced in Phase 12 or later (notes composer, bulk note modal, etc.) should use vee-validate + zod from the start rather than repeating the manual pattern.
+
+**Required packages when the time comes:** `vee-validate`, `zod`, `@vee-validate/zod`
+**Required shadcn components:** `Form.vue`, `FormField.vue`, `FormItem.vue`, `FormControl.vue`, `FormLabel.vue`, `FormMessage.vue`
+
+### Group C — Fixes and refinements
+
+- **Red ring on invalid inputs** — `Input.vue` and `SelectTrigger.vue` both received an `error` boolean prop. When `true`, the border switches to `border-danger-text` and the focus ring to `focus:ring-danger-text`. ClassFormDialog passes `:error="!!errors.name"` to the Class Name input and `:error="!!errors.user_ids"` to the Assign Staff trigger. Enrolled students area uses only the red text message beneath (no ring — not a standard input element).
+
+- **Real-time error clearing** — three watchers added to ClassFormDialog: `form.name`, `form.userIds` (deep), `form.studentIds` (deep). Each watch deletes its corresponding `errors` key the moment the user corrects the field, clearing both the red border and the error message instantly without waiting for the next save attempt.
+
+- **Toast position and CSS** — `vue-sonner/style.css` was not imported, causing the Toaster to render as unstyled text in the bottom-left of the screen with no positioning, animation, or colour. Fixed by adding `import 'vue-sonner/style.css'` to `main.ts`. Toaster position changed from `bottom-right` to `top-right` so toasts appear above dialog backdrops. The `zIndex` override in `toastOptions.style` was removed — Sonner's own container z-index (`999999999`) is sufficient.
+
+- **SelectContent viewport overflow** — Year Level dropdown (and all single-mode Select dropdowns) was escaping the viewport when the trigger was near the bottom of the screen. Root cause: `max-h` was on `SelectViewport` but the scroll buttons outside the viewport added extra height, pushing the total past the boundary. Fixed by moving `max-h-[var(--radix-select-content-available-height)]` to `RadixSelectContent` and restructuring as a flex column — scroll buttons use `shrink-0`, viewport uses `flex-1 overflow-y-auto`. Dropdown now self-constrains to available space on any screen.
+
+---

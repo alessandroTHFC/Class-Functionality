@@ -21,4 +21,13 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+// Development-only artificial delay so skeleton loaders are visible.
+// Remove or set to 0 before deploying to production.
+if (import.meta.env.DEV) {
+  api.interceptors.response.use(
+    (response) => new Promise((resolve) => setTimeout(() => resolve(response), 800)),
+    (error) => new Promise((_, reject) => setTimeout(() => reject(error), 800)),
+  )
+}
+
 export default api

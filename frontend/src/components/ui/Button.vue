@@ -1,33 +1,34 @@
 <script setup lang="ts">
-import { cn } from '@/lib/utils'
+import { cn } from "@/lib/utils";
 
 const props = withDefaults(
   defineProps<{
-    variant?: 'default' | 'destructive' | 'outline' | 'ghost'
-    size?: 'default' | 'sm' | 'lg'
-    class?: string
-    disabled?: boolean
-    type?: 'button' | 'submit' | 'reset'
+    variant?: "default" | "destructive" | "outline" | "ghost";
+    size?: "default" | "sm" | "lg" | "icon";
+    class?: string;
+    disabled?: boolean;
+    type?: "button" | "submit" | "reset";
   }>(),
   {
-    variant: 'default',
-    size: 'default',
-    type: 'button',
+    variant: "default",
+    size: "default",
+    type: "button",
   },
-)
+);
 
 const variants: Record<string, string> = {
-  default:     'bg-teal text-white hover:bg-teal-hover',
-  destructive: 'bg-danger-text text-white hover:opacity-90',
-  outline:     'border border-brand-border bg-card-bg text-text-primary hover:bg-app-bg',
-  ghost:       'text-text-primary hover:bg-app-bg',
-}
+  default: "bg-teal text-white hover:bg-teal-hover",
+  destructive: "bg-danger-text text-white hover:opacity-90",
+  outline: "border-2 border-teal bg-card-bg text-teal hover:bg-app-bg",
+  ghost: "text-text-primary hover:bg-app-bg",
+};
 
 const sizes: Record<string, string> = {
-  default: 'h-10 px-4 py-2 text-sm',
-  sm:      'h-8 px-3 text-xs',
-  lg:      'h-11 px-8 text-sm',
-}
+  default: "h-10 px-4 py-2 text-sm",
+  sm: "h-8 px-3 text-xs",
+  lg: "h-11 px-8 text-sm",
+  icon: "h-8 w-8 p-0",
+};
 </script>
 
 <template>

@@ -3,6 +3,8 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ClassController;
 use App\Http\Controllers\NoteController;
+use App\Http\Controllers\StudentController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\YearLevelController;
 use Illuminate\Support\Facades\Route;
 
@@ -36,6 +38,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Year levels are a simple lookup list — no CRUD needed beyond index.
         Route::get('/year_levels', [YearLevelController::class, 'index']);
+
+        // Staff users for the class filter dropdown and form dialog checklist.
+        // All authenticated roles can call this — see UserController::index().
+        Route::get('/users', [UserController::class, 'index']);
+
+        // Students are seeded only — no create/update/delete endpoints exist.
+        // This list endpoint is used exclusively by the class form dialog's enrolment picker.
+        // Supports optional search, year_level_id, and per_page query parameters.
+        Route::get('/students', [StudentController::class, 'index']);
 
         // Notes are nested under /students/{student} for the GET endpoint because notes are
         // a sub-resource of a student. {student} is resolved via route model binding —

@@ -6,11 +6,11 @@ import { Toaster } from 'vue-sonner'
 </script>
 
 <template>
-  <!-- position: bottom-right matches the ClassHub layout (sidebar on the left)
+  <!-- position: top-right keeps toasts visible above dialog backdrops
        richColors: maps success/error/warning to semantic colours
        toastOptions: overrides the default font to match the app body font -->
   <Toaster
-    position="bottom-right"
+    position="top-right"
     :rich-colors="true"
     :toast-options="{
       style: { fontFamily: 'Inter, sans-serif' },
