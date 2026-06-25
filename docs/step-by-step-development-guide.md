@@ -342,26 +342,34 @@ export interface StoreNotePayload {
 
 ---
 
-## Phase 12 — Class Detail (Frontend)
+## Phase 12 — Class Detail Page + Notes (Frontend)
 
-**Goal:** Clicking a class opens a two-pane view showing enrolled students and per-student data.
+**Goal:** Clicking a class opens a two-pane view showing enrolled students, per-student NCCD data, notes, and bulk note creation. Phases 12 and 13 were merged — notes were built alongside the detail page in the same session.
 
-109. Create `ClassDetail.vue` page — two-pane layout (student list left, student detail panel right)
-110. Create `StudentList.vue` component — lists enrolled students, clicking one selects them
-111. Create `StudentPanel.vue` component — shows selected student's NCCD data and a Notes tab
-112. Fetch class detail via `GET /api/classes/{id}` and display the NCCD summary counts in the header
+**Backend changes made during this phase:**
+- `NoteRepository::forStudent()` — `.latest()` replaced with `.orderBy('note_date', 'asc')`
+- `ClassStudentResource` — added `date_of_birth`
+- `ClassDetailResource` — added `updated_at`
+- `SchoolClass::students()` — added `->orderBy('family_name')->orderBy('given_name')` at the relationship level
 
----
+**New shadcn-vue components:** `Separator`, `Textarea`, `Checkbox`, `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent`, `ScrollArea`, `Dialog`, `DialogTrigger`, `DialogContent`, `DialogHeader`, `DialogTitle`, `DialogFooter`, `DialogClose`
 
-## Phase 13 — Student Notes (Frontend)
-
-**Goal:** Staff can view existing notes and create new ones, including bulk creation.
-
-113. Create `NotesList.vue` component — displays notes inside the StudentPanel Notes tab
-114. Create `BulkNoteModal.vue` — multi-student selector + note form; submits to `POST /api/notes`
-115. Wire up "Add Note" button in StudentPanel for single-student note creation
-116. Wire up "Bulk Note" button in ClassDetail for bulk note creation across selected students
-117. Refresh notes list after submission
+109. ✅ Create `src/composables/useClassDetail.ts` — `fetchClass`, `deleteClass`, `fetchNotes`, `saveNote`
+110. ✅ Create `src/components/StudentListPanel.vue` — left-pane wrapper with `ScrollArea`; passes students to `StudentListItem` list
+111. ✅ Create `src/components/StudentListItem.vue` — student row with purple Avatar, full name, NCCD badge, and highlighted-selected state
+112. ✅ Create `src/components/StudentProfilePanel.vue` — right pane with xl Avatar, profile header (NCCD badges + metadata column), and Tabs (Notes / Strategies)
+113. ✅ Create `src/components/NotesList.vue` — scrollable notes area; scrolls to bottom on update
+114. ✅ Create `src/components/NoteCard.vue` — avatar outside bordered bubble; pencil placeholder icon with Tooltip
+115. ✅ Create `src/components/NoteComposer.vue` — note entry form; visible only to `canAddNotes` roles
+116. ✅ Create `src/components/StrategiesView.vue` — placeholder Card ("Strategy management will be available in a future update.")
+117. ✅ Create `src/components/BulkNoteModal.vue` — Dialog with student checkbox selector and note form; submits to `POST /api/notes`
+118. ✅ Create `src/pages/ClassDetailPage.vue` — orchestrator; breadcrumb; title + role-gated action buttons (Edit, Delete, Add Multiple Notes); 3 stat cards; two-pane `grid-cols-5 h-[700px]` layout; ClassFormDialog always rendered; BulkNoteModal
+119. ✅ Add `hasRole()` function to `useAuthStore`
+120. ✅ Add `canCreate`, `canEdit`, `canDelete`, `canAddNotes` computed properties to `useAuthStore` — destructured by pages rather than duplicated inline
+121. ✅ Extract `getInitials()` to `src/lib/utils.ts` — shared across AppSidebar, StudentListItem, NoteCard
+122. ✅ Add `xl` size variant to `Avatar.vue`
+123. ✅ Add `HelpCircle` placeholder icon to `AppSidebar` below Settings
+124. ✅ Apply `canCreate` / `canEdit` / `canDelete` role gates to ClassDashboard action buttons; rename "Add New Class" → "New Class" with Plus icon
 
 ---
 

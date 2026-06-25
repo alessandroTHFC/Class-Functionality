@@ -16,7 +16,7 @@ class NoteRepository
         return StudentNote::with(['author', 'schoolClass'])
             ->where('student_id', $studentId)
             ->when($classId, fn ($q) => $q->where('class_id', $classId))
-            ->latest()
+            ->orderBy('note_date', 'asc')
             ->get();
     }
 

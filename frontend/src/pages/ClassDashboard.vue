@@ -7,7 +7,9 @@ import {
   GraduationCap,
   Pencil,
   Trash2,
+  Plus,
 } from "lucide-vue-next";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { useReferenceStore } from "@/stores/useReferenceStore";
 import { useClasses } from "@/composables/useClasses";
 import AppSidebar from "@/components/AppSidebar.vue";
@@ -32,7 +34,10 @@ import ClassFormDialog from "@/components/ClassFormDialog.vue";
 import Skeleton from "@/components/ui/Skeleton.vue";
 import type { ClassListItem } from "@/types";
 
+const authStore = useAuthStore();
 const referenceStore = useReferenceStore();
+
+const { canCreate, canEdit, canDelete } = authStore;
 
 const {
   classList,
@@ -162,7 +167,10 @@ onMounted(async () => {
         <h1 class="text-2xl font-semibold text-text-primary">
           Class Dashboard
         </h1>
-        <Button @click="openCreateDialog"> Add New Class</Button>
+        <Button v-if="canCreate" @click="openCreateDialog">
+          <Plus class="w-4 h-4 mr-1.5" />
+          New Class
+        </Button>
       </div>
 
       <!-- Stat cards -->
@@ -365,6 +373,7 @@ onMounted(async () => {
               <TableCell>
                 <div class="flex items-center justify-end gap-1">
                   <Button
+                    v-if="canEdit"
                     variant="ghost"
                     size="icon"
                     title="Edit class"
@@ -374,6 +383,7 @@ onMounted(async () => {
                     <Pencil class="w-4 h-4" />
                   </Button>
                   <Button
+                    v-if="canDelete"
                     variant="ghost"
                     size="icon"
                     title="Delete class"

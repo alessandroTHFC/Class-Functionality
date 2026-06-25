@@ -512,6 +512,16 @@ The AI was required to summarise the upcoming phase in plain English before any 
 
 **Asking conceptual questions throughout.** Rather than accepting output, I regularly asked things like _"where is the auth:sanctum middleware?"_, _"do we have seeded data in the tenants table?"_, and _"what is the summary object referring to?"_. These were how I built a mental model of what was actually being built — not how someone rubber-stamps AI output.
 
+**Enforcing component standards.** During Phase 11, I audited the dashboard after the first build and found it was using raw HTML — `<table>`, `<select>`, `<div>` — in places where shadcn-vue components already existed. I rejected the output and asked for a full audit. The same standard was enforced again during Phase 12 on the detail page. The rule is now explicit: if a shadcn component exists for an element, use it. No exceptions.
+
+**Redirecting UI layout decisions.** The AppSidebar was initially built at 256px with icon labels. I had a reference image of the intended design and redirected it to an 88px icon-only layout. Similarly, when the initial dialog width was too narrow, I specified the exact constraints rather than accepting the first attempt. The AI doesn't know what the design looks like — that judgement has to come from me.
+
+**Rejecting unnecessary abstractions.** When the AI drafted a custom `ConfirmToast.vue` component for delete confirmations, I pointed out that vue-sonner — which was already installed — has built-in support for action and cancel buttons on toasts. The custom component was unnecessary. The pattern used throughout the rest of the app is `toast('...', { action: { label: 'Yes, delete', onClick }, cancel: { label: 'Cancel' } })`.
+
+**Centralising shared logic.** Two instances of this during Phase 12. Role-based permission checks (`canEdit`, `canDelete`, etc.) were initially duplicated as local computed properties in each page — I asked for them to be moved into `useAuthStore` and exported from there. Separately, I noticed that `getInitials()` had been written inline in three different components. I asked for it to be extracted to `src/lib/utils.ts` as a single shared function. Both are small decisions, but the kind of structural call that matters when the codebase grows — shared logic should live in one place and be imported, not copied.
+
+**Catching a silent UI bug.** During Phase 12, the edit dialog wasn't populating with class data when opened. The AI had used `v-if` on the dialog component, which meant the watcher inside it never fired because the component mounted with `open: true` — there was no false-to-true transition to detect. This wasn't flagged before the code was written. Noticing the behaviour and investigating the root cause rather than accepting "it works" was what caught it.
+
 ---
 
 ### What I took from it
@@ -519,3 +529,7 @@ The AI was required to summarise the upcoming phase in plain English before any 
 The AI is good at generating code that looks correct. It's less reliable at knowing whether that code fits your specific context — your deployment constraints, your scope decisions, your existing architectural choices. The more precisely I defined the context through documentation and phase summaries, the better the output became.
 
 The most valuable moments weren't when I asked the AI to build something. They were when I asked it to explain something I didn't fully understand, then made my own decision based on that explanation.
+
+Even when things are clearly specified, there is a degree of scope creep. It will build components from scratch when pre-built ones already exist, duplicate logic across files when a single shared function would do, and make UI decisions that don't match the design document. None of these are dramatic failures — they're subtle drifts that compound over time if you're not watching. A human eye is still required at every step to catch what the AI doesn't flag itself.
+
+On the frontend specifically: the UI required the most attention and the most refactoring passes. Multiple times the output didn't match what was in the design document — layout proportions, sidebar width, colour application, component hierarchy. The AI can implement a design if you can describe it precisely enough, but there's a meaningful gap between a written description and a visual spec. I'm curious to see how the workflow changes with a proper Figma design and the Figma MCP server, where the AI can read the design directly rather than interpreting a written approximation of it.

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import { BookOpen, LogOut, Users, BarChart2, Settings } from "lucide-vue-next";
+import { BookOpen, LogOut, Users, BarChart2, Settings, HelpCircle } from "lucide-vue-next";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { getInitials } from "@/lib/utils";
 import Popover from "@/components/ui/Popover.vue";
@@ -34,6 +34,7 @@ const placeholderItems = [
   { name: "students", label: "Students", icon: Users },
   { name: "reports", label: "Reports", icon: BarChart2 },
   { name: "settings", label: "Settings", icon: Settings },
+  { name: "help", label: "Help", icon: HelpCircle },
 ];
 
 async function handleLogout() {

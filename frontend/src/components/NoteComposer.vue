@@ -55,7 +55,7 @@ async function handleSave(): Promise<void> {
 </script>
 
 <template>
-  <div class="border-t border-brand-border pt-3 shrink-0">
+  <div class="border border-brand-border p-3 shrink-0 bg-app-bg rounded-sm mt-3">
     <!-- Date picker row -->
     <div class="flex items-center gap-2 mb-2">
       <label class="text-xs text-text-secondary shrink-0">Note date</label>

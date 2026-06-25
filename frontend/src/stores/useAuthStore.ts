@@ -17,8 +17,15 @@ export const useAuthStore = defineStore("auth", () => {
   // Returns true if the authenticated user holds at least one of the given roles.
   // Pass multiple roles when a feature is shared across role tiers.
   function hasRole(...allowedRoles: string[]): boolean {
-    return (user.value?.roles ?? []).some((r) => allowedRoles.includes(r))
-  };
+    return (user.value?.roles ?? []).some((r) => allowedRoles.includes(r));
+  }
+
+  // Pre-computed permissions used across multiple pages — avoids repeating the same
+  // hasRole() calls in every component that needs to gate UI by role.
+  const canCreate = computed(() => hasRole("school-admin", "coordinator", "teacher"));
+  const canEdit   = computed(() => hasRole("school-admin", "coordinator", "teacher"));
+  const canDelete = computed(() => hasRole("school-admin", "coordinator"));
+  const canAddNotes = computed(() => hasRole("school-admin", "coordinator", "teacher", "teachers-assistant"));
 
   // Persist token and user to localStorage so the session survives a browser refresh.
   // The Axios interceptor in src/lib/axios.ts reads auth_token on every request.
@@ -47,5 +54,5 @@ export const useAuthStore = defineStore("auth", () => {
     localStorage.removeItem("auth_user");
   }
 
-  return { token, user, isAuthenticated, hasRole, login, logout };
+  return { token, user, isAuthenticated, hasRole, canCreate, canEdit, canDelete, canAddNotes, login, logout };
 });

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue'
-import Separator from '@/components/ui/Separator.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
 import NoteCard from '@/components/NoteCard.vue'
 import type { StudentNote } from '@/types'
@@ -46,11 +45,8 @@ watch(
     </div>
 
     <!-- Note cards in chronological order (oldest first, newest at bottom) -->
-    <template v-else>
-      <template v-for="(note, index) in notes" :key="note.id">
-        <NoteCard :note="note" />
-        <Separator v-if="index < notes.length - 1" />
-      </template>
-    </template>
+    <div v-else class="flex flex-col gap-2">
+      <NoteCard v-for="note in notes" :key="note.id" :note="note" />
+    </div>
   </div>
 </template>

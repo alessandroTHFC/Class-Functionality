@@ -475,3 +475,85 @@ shadcn-vue ships `Form`, `FormField`, `FormItem`, `FormControl`, and `FormMessag
 - **SelectContent viewport overflow** — Year Level dropdown (and all single-mode Select dropdowns) was escaping the viewport when the trigger was near the bottom of the screen. Root cause: `max-h` was on `SelectViewport` but the scroll buttons outside the viewport added extra height, pushing the total past the boundary. Fixed by moving `max-h-[var(--radix-select-content-available-height)]` to `RadixSelectContent` and restructuring as a flex column — scroll buttons use `shrink-0`, viewport uses `flex-1 overflow-y-auto`. Dropdown now self-constrains to available space on any screen.
 
 ---
+
+## Phase 12 — Class Detail Page (Frontend)
+
+**Status: Complete.**
+
+**Scope note:** Phases 12 and 13 from the original guide were merged into a single implementation pass. Notes (NotesList, NoteComposer, BulkNoteModal) were built alongside the Class Detail page rather than in a separate phase.
+
+---
+
+### New shadcn-vue components
+
+All owned in `src/components/ui/`:
+
+- `Separator.vue` — thin `<hr>`-style divider (Radix Vue `SeparatorRoot`)
+- `Textarea.vue` — styled textarea matching Input visual design
+- `Checkbox.vue` — Radix Vue `CheckboxRoot` + `CheckboxIndicator` with `Check` icon
+- `Tabs.vue`, `TabsList.vue`, `TabsTrigger.vue`, `TabsContent.vue` — Radix Vue tab primitives with ClassHub tokens
+- `ScrollArea.vue` — Radix Vue `ScrollAreaRoot` + `Viewport` + `ScrollBar`; used for the student list
+- `Dialog.vue`, `DialogTrigger.vue`, `DialogContent.vue`, `DialogHeader.vue`, `DialogTitle.vue`, `DialogFooter.vue`, `DialogClose.vue` — full modal stack; `DialogHeader` uses `bg-teal text-white` matching `ClassFormDialog`
+
+---
+
+### Backend changes
+
+- **`NoteRepository::forStudent()`** — changed `.latest()` to `.orderBy('note_date', 'asc')`. `.latest()` orders by `created_at`; the display should order by the note date the author recorded.
+- **`ClassStudentResource`** — added `date_of_birth` field (needed by StudentProfilePanel header).
+- **`ClassDetailResource`** — added `updated_at` field (used in Class Info stat card "Last Updated").
+- **`SchoolClass::students()` relationship** — added `->orderBy('family_name')->orderBy('given_name')` so enrolled students always load alphabetically regardless of insertion order. Applied at the relationship level so every eager load is automatically sorted.
+
+---
+
+### New feature components
+
+- **`src/composables/useClassDetail.ts`** — composable with `fetchClass`, `deleteClass`, `fetchNotes`, `saveNote`; `.then()` chain syntax consistent with `useClasses`
+- **`src/components/StudentListPanel.vue`** — left-pane wrapper; `ScrollArea` so the panel scrolls without affecting page layout
+- **`src/components/StudentListItem.vue`** — single row; purple Avatar (size lg), full name, NCCD level badge; highlighted row uses `bg-purple-bg` with teal left border; "NCCD Level: " prefix on level text
+- **`src/components/StudentProfilePanel.vue`** — right pane; profile header with xl purple Avatar, NCCD badges, and a metadata column (DOB / Year Level / Disability) on the right; Tabs (Notes / Strategies)
+- **`src/components/NotesList.vue`** — scrollable notes area; `gap-2` between NoteCard items; scrolls to bottom on notes update
+- **`src/components/NoteCard.vue`** — avatar sits outside the bordered bubble; bordered message with `bg-app-bg`; pencil placeholder icon with Tooltip; `button type="button"` with `cursor-default` (no `disabled` — avoids OS red-circle cursor)
+- **`src/components/NoteComposer.vue`** — visible only to `canAddNotes` roles; full `border border-brand-border bg-app-bg rounded-sm p-3 mt-3 shrink-0`; Textarea, date input, Save button
+- **`src/components/StrategiesView.vue`** — placeholder Card; "Strategy management will be available in a future update."
+- **`src/components/BulkNoteModal.vue`** — Dialog-based; student selector (checkboxes, searchable), note form (text, date, confidentiality); submits to `POST /api/notes`
+- **`src/pages/ClassDetailPage.vue`** — orchestrator; breadcrumb; title + role-gated action buttons; 3 stat cards (Students, NCCD Students, Class Info); `grid-cols-5` two-pane layout at `h-[700px]`; ClassFormDialog always rendered; BulkNoteModal
+
+---
+
+### Role-based visibility
+
+- **`hasRole(...allowedRoles)` added to `useAuthStore`** — returns `true` if the user holds at least one of the given role slugs
+- **`canCreate`, `canEdit`, `canDelete`, `canAddNotes`** — computed properties added to `useAuthStore` and exported. Both `ClassDashboard` and `ClassDetailPage` destructure what they need from the store — no `hasRole()` calls duplicated in pages
+
+---
+
+### UI polish pass
+
+A series of user-directed refinements applied after the initial build:
+
+| Item | Change |
+|---|---|
+| Note card avatar | Moved outside the bordered bubble; bubble is `flex-1 min-w-0 border bg-app-bg` |
+| Note card pencil | `button type="button" cursor-default`; `disabled` removed (caused OS red-circle cursor on hover) |
+| NoteComposer border | Changed from `border-t` only to full `border`; added `bg-app-bg` |
+| Profile header metadata | DOB / Year Level / Disability moved to a right-aligned column (label + value on one line each) |
+| Tabs flex-col fix | `flex-col` removed from `TabsContent` — overrides Radix's `hidden` attribute and keeps inactive panels in layout; moved to an inner `<div>` |
+| Edit dialog populate fix | `v-if="showEditDialog"` removed from `ClassFormDialog`; always rendered, open prop controls visibility; `v-if` prevented `watch(() => props.open)` from firing |
+| Reference store on ClassDetailPage | `referenceStore.load()` added to `onMounted` — year level / staff lists were empty without it |
+| Student list ordering | `SchoolClass::students()` ordered `->orderBy('family_name')->orderBy('given_name')` at the relationship level |
+| AppSidebar help icon | `HelpCircle` placeholder added below Settings; `text-white/25 cursor-default` |
+| ClassDashboard "New Class" button | Renamed from "Add New Class"; Plus icon added; `v-if="canCreate"` |
+| ClassDashboard action buttons | Edit `v-if="canEdit"`, Delete `v-if="canDelete"` |
+| Permission properties | `canCreate`, `canEdit`, `canDelete`, `canAddNotes` moved from local computed blocks in each page into `useAuthStore` |
+
+---
+
+### Notable errors and patterns established
+
+- **`getInitials` extracted to `src/lib/utils.ts`** — was duplicated across AppSidebar, StudentListItem, and NoteCard; single export in utils covers all call sites
+- **Avatar `xl` size variant** — `w-20 h-20` / `text-xl` added; prop type changed to use `FallbackVariants['size']` only to resolve TypeScript mismatch between the two CVA configs
+- **Tabs + Radix `hidden` attribute gotcha** — Radix Vue sets `display: none` via the HTML `hidden` attribute on inactive `TabsContent`. Any display-setting class on the element itself (`flex-col`, `flex`, `block`) overrides `hidden` and keeps inactive content visible. Never put layout classes directly on `TabsContent` — use an inner wrapper div
+- **Dialog `v-if` gotcha** — if a dialog mounts with `open: true`, a `watch(() => props.open)` never fires because there is no false → true transition. Always render dialogs unconditionally; control visibility with the `open` prop. This matches the pattern already in `ClassDashboard`
+
+---

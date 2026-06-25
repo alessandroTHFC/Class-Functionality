@@ -9,6 +9,7 @@ const rootVariants = cva('relative inline-flex shrink-0 rounded-full overflow-hi
       sm: 'w-8 h-8',
       md: 'w-10 h-10',
       lg: 'w-12 h-12',
+      xl: 'w-20 h-20',
     },
   },
   defaultVariants: { size: 'md' },
@@ -24,18 +25,18 @@ const fallbackVariants = cva('flex h-full w-full items-center justify-center rou
       sm: 'text-xs',
       md: 'text-sm',
       lg: 'text-base',
+      xl: 'text-xl',
     },
   },
   defaultVariants: { variant: 'teal', size: 'md' },
 })
 
-type RootVariants = VariantProps<typeof rootVariants>
 type FallbackVariants = VariantProps<typeof fallbackVariants>
 
 const props = defineProps<{
   initials: string
   variant?: FallbackVariants['variant']
-  size?: RootVariants['size']
+  size?: FallbackVariants['size']
   class?: string
 }>()
 </script>

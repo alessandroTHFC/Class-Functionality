@@ -6,7 +6,7 @@ import CardContent from '@/components/ui/CardContent.vue'
 </script>
 
 <template>
-  <Card class="mt-4">
+  <Card>
     <CardHeader>
       <CardTitle>Strategies</CardTitle>
     </CardHeader>

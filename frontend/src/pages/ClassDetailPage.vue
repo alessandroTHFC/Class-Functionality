@@ -1,28 +1,37 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { FileText, Pencil, Trash2 } from 'lucide-vue-next'
-import { toast } from 'vue-sonner'
-import { useAuthStore } from '@/stores/useAuthStore'
-import { useClassDetail } from '@/composables/useClassDetail'
-import AppSidebar from '@/components/AppSidebar.vue'
-import Button from '@/components/ui/Button.vue'
-import Card from '@/components/ui/Card.vue'
-import CardHeader from '@/components/ui/CardHeader.vue'
-import CardTitle from '@/components/ui/CardTitle.vue'
-import CardContent from '@/components/ui/CardContent.vue'
-import Skeleton from '@/components/ui/Skeleton.vue'
-import StudentListPanel from '@/components/StudentListPanel.vue'
-import StudentProfilePanel from '@/components/StudentProfilePanel.vue'
-import BulkNoteModal from '@/components/BulkNoteModal.vue'
-import ClassFormDialog from '@/components/ClassFormDialog.vue'
-import type { ClassListItem } from '@/types'
+import { ref, computed, watch, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import {
+  FileText,
+  Pencil,
+  Trash2,
+  Users,
+  ClipboardList,
+  Info,
+} from "lucide-vue-next";
+import { toast } from "vue-sonner";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { useReferenceStore } from "@/stores/useReferenceStore";
+import { useClassDetail } from "@/composables/useClassDetail";
+import AppSidebar from "@/components/AppSidebar.vue";
+import Button from "@/components/ui/Button.vue";
+import Card from "@/components/ui/Card.vue";
+import CardHeader from "@/components/ui/CardHeader.vue";
+import CardTitle from "@/components/ui/CardTitle.vue";
+import CardContent from "@/components/ui/CardContent.vue";
+import Skeleton from "@/components/ui/Skeleton.vue";
+import StudentListPanel from "@/components/StudentListPanel.vue";
+import StudentProfilePanel from "@/components/StudentProfilePanel.vue";
+import BulkNoteModal from "@/components/BulkNoteModal.vue";
+import ClassFormDialog from "@/components/ClassFormDialog.vue";
+import type { ClassListItem } from "@/types";
 
-const route = useRoute()
-const router = useRouter()
-const authStore = useAuthStore()
+const route = useRoute();
+const router = useRouter();
+const authStore = useAuthStore();
+const referenceStore = useReferenceStore();
 
-const classId = computed(() => Number(route.params.id))
+const classId = computed(() => Number(route.params.id));
 
 const {
   classDetail,
@@ -33,66 +42,62 @@ const {
   fetchClass,
   deleteClass,
   fetchNotes,
-} = useClassDetail()
+} = useClassDetail();
 
-// ─── Role-based visibility ────────────────────────────────────────────────────
-
-const canEdit = computed(() =>
-  authStore.hasRole('school-admin', 'coordinator', 'teacher'),
-)
-const canDelete = computed(() =>
-  authStore.hasRole('school-admin', 'coordinator'),
-)
-const canAddNotes = computed(() =>
-  authStore.hasRole('school-admin', 'coordinator', 'teacher', 'teachers-assistant'),
-)
+const { canEdit, canDelete, canAddNotes } = authStore;
 
 // ─── Selected student ─────────────────────────────────────────────────────────
 
-const selectedStudentId = ref<number | null>(null)
+const selectedStudentId = ref<number | null>(null);
 
-const selectedStudent = computed(() =>
-  classDetail.value?.students.find((s) => s.id === selectedStudentId.value) ?? null,
-)
+const selectedStudent = computed(
+  () =>
+    classDetail.value?.students.find((s) => s.id === selectedStudentId.value) ??
+    null,
+);
 
 // Auto-select the first student once the class loads.
 watch(classDetail, (detail) => {
-  if (detail && detail.students.length > 0 && selectedStudentId.value === null) {
-    selectedStudentId.value = detail.students[0].id
+  if (
+    detail &&
+    detail.students.length > 0 &&
+    selectedStudentId.value === null
+  ) {
+    selectedStudentId.value = detail.students[0].id;
   }
-})
+});
 
 // Fetch notes whenever the selected student changes.
 watch(selectedStudentId, (id) => {
-  if (id !== null) fetchNotes(id)
-})
+  if (id !== null) fetchNotes(id);
+});
 
 function selectStudent(id: number): void {
-  selectedStudentId.value = id
+  selectedStudentId.value = id;
 }
 
 // ─── Stat helpers ─────────────────────────────────────────────────────────────
 
 // Count of students that have any NCCD level recorded.
 const nccdCount = computed(() => {
-  const students = classDetail.value?.students ?? []
-  return students.filter((s) => s.nccd_level !== null).length
-})
+  const students = classDetail.value?.students ?? [];
+  return students.filter((s) => s.nccd_level !== null).length;
+});
 
 const nccdPercent = computed(() => {
-  const total = classDetail.value?.students.length ?? 0
-  if (total === 0) return 0
-  return Math.round((nccdCount.value / total) * 100)
-})
+  const total = classDetail.value?.students.length ?? 0;
+  if (total === 0) return 0;
+  return Math.round((nccdCount.value / total) * 100);
+});
 
 // ─── Edit dialog ──────────────────────────────────────────────────────────────
 
-const showEditDialog = ref(false)
+const showEditDialog = ref(false);
 
 // ClassFormDialog expects a ClassListItem shape for edit mode.
 // We project classDetail into that shape on the fly.
 const editTarget = computed<ClassListItem | null>(() => {
-  if (!classDetail.value) return null
+  if (!classDetail.value) return null;
   return {
     id: classDetail.value.id,
     name: classDetail.value.name,
@@ -100,58 +105,60 @@ const editTarget = computed<ClassListItem | null>(() => {
     created_by: classDetail.value.created_by,
     assigned_users: classDetail.value.assigned_users,
     student_count: classDetail.value.students.length,
-  }
-})
+  };
+});
 
 function onClassSaved(): void {
-  showEditDialog.value = false
+  showEditDialog.value = false;
   // Re-fetch to pick up any name/year-level/staff/student changes.
-  fetchClass(classId.value)
-  toast.success('Class updated successfully.')
+  fetchClass(classId.value);
+  toast.success("Class updated successfully.");
 }
 
 // ─── Bulk note modal ──────────────────────────────────────────────────────────
 
-const showBulkNoteModal = ref(false)
+const showBulkNoteModal = ref(false);
 
 // Re-fetch notes for the currently selected student after any note save (single or bulk).
 function refreshNotes(): void {
   if (selectedStudentId.value !== null) {
-    fetchNotes(selectedStudentId.value)
+    fetchNotes(selectedStudentId.value);
   }
 }
 
 // ─── Delete ───────────────────────────────────────────────────────────────────
 
-const deleting = ref(false)
+const deleting = ref(false);
 
 function promptDelete(): void {
-  const name = classDetail.value?.name ?? 'this class'
+  const name = classDetail.value?.name ?? "this class";
   toast(`Delete "${name}"? This cannot be undone.`, {
     duration: Infinity,
-    action: { label: 'Yes, delete', onClick: handleDelete },
-    cancel: { label: 'Cancel' },
-  })
+    action: { label: "Yes, delete", onClick: handleDelete },
+    cancel: { label: "Cancel" },
+  });
 }
 
 async function handleDelete(): Promise<void> {
-  deleting.value = true
+  deleting.value = true;
   await deleteClass(classId.value)
     .then(() => {
-      toast.success('Class deleted successfully.')
-      router.push({ name: 'classes' })
+      toast.success("Class deleted successfully.");
+      router.push({ name: "classes" });
     })
     .catch(() => {
-      toast.error('Failed to delete class.')
+      toast.error("Failed to delete class.");
     })
     .finally(() => {
-      deleting.value = false
-    })
+      deleting.value = false;
+    });
 }
 
 // ─── Mount ────────────────────────────────────────────────────────────────────
 
-onMounted(() => fetchClass(classId.value))
+onMounted(() =>
+  Promise.all([referenceStore.load(), fetchClass(classId.value)]),
+);
 </script>
 
 <template>
@@ -159,10 +166,12 @@ onMounted(() => fetchClass(classId.value))
     <div class="max-w-7xl mx-auto px-6 py-8 flex flex-col h-full">
       <!-- Breadcrumb -->
       <nav class="flex items-center gap-1.5 text-sm text-text-secondary mb-4">
-        <RouterLink to="/classes" class="hover:text-teal transition-colors">Classes</RouterLink>
+        <RouterLink to="/classes" class="hover:text-teal transition-colors"
+          >Classes</RouterLink
+        >
         <span>›</span>
         <span class="text-text-primary font-medium">
-          {{ loadingDetail ? '…' : (classDetail?.name ?? 'Class') }}
+          {{ loadingDetail ? "…" : (classDetail?.name ?? "Class") }}
         </span>
       </nav>
 
@@ -174,9 +183,15 @@ onMounted(() => fetchClass(classId.value))
             <Skeleton class="h-4 w-40" />
           </template>
           <template v-else>
-            <h1 class="text-2xl font-semibold text-text-primary">{{ classDetail?.name }}</h1>
-            <p v-if="classDetail?.assigned_users.length" class="text-sm text-teal mt-0.5">
-              Assigned Staff: {{ classDetail.assigned_users.map((u) => u.name).join(', ') }}
+            <h1 class="text-2xl font-semibold text-text-primary">
+              {{ classDetail?.name }}
+            </h1>
+            <p
+              v-if="classDetail?.assigned_users.length"
+              class="text-sm text-teal mt-0.5"
+            >
+              Assigned Staff:
+              {{ classDetail.assigned_users.map((u) => u.name).join(", ") }}
             </p>
           </template>
         </div>
@@ -217,7 +232,10 @@ onMounted(() => fetchClass(classId.value))
       </div>
 
       <!-- Error state -->
-      <div v-if="errorDetail" class="py-12 text-center text-sm text-danger-text">
+      <div
+        v-if="errorDetail"
+        class="py-12 text-center text-sm text-danger-text"
+      >
         {{ errorDetail }}
       </div>
 
@@ -228,14 +246,21 @@ onMounted(() => fetchClass(classId.value))
           <Card>
             <CardHeader>
               <CardTitle>Students</CardTitle>
+              <div class="p-2 bg-purple-bg rounded-sm">
+                <Users class="w-5 h-5 text-purple-text" />
+              </div>
             </CardHeader>
             <CardContent>
               <template v-if="loadingDetail">
                 <Skeleton class="h-8 w-12" />
               </template>
               <template v-else>
-                <p class="text-2xl font-bold text-text-primary">{{ classDetail?.students.length ?? '—' }}</p>
-                <p class="text-xs text-text-secondary mt-0.5">Enrolled in this class</p>
+                <p class="text-2xl font-bold text-text-primary">
+                  {{ classDetail?.students.length ?? "—" }}
+                </p>
+                <p class="text-xs text-text-secondary mt-0.5">
+                  Enrolled in this class
+                </p>
               </template>
             </CardContent>
           </Card>
@@ -244,14 +269,21 @@ onMounted(() => fetchClass(classId.value))
           <Card>
             <CardHeader>
               <CardTitle>NCCD Students</CardTitle>
+              <div class="p-2 bg-purple-bg rounded-sm">
+                <ClipboardList class="w-5 h-5 text-purple-text" />
+              </div>
             </CardHeader>
             <CardContent>
               <template v-if="loadingDetail">
                 <Skeleton class="h-8 w-12" />
               </template>
               <template v-else>
-                <p class="text-2xl font-bold text-text-primary">{{ nccdCount }}</p>
-                <p class="text-xs text-text-secondary mt-0.5">{{ nccdPercent }}% of class</p>
+                <p class="text-2xl font-bold text-text-primary">
+                  {{ nccdCount }}
+                </p>
+                <p class="text-xs text-text-secondary mt-0.5">
+                  {{ nccdPercent }}% of class
+                </p>
               </template>
             </CardContent>
           </Card>
@@ -260,6 +292,9 @@ onMounted(() => fetchClass(classId.value))
           <Card>
             <CardHeader>
               <CardTitle>Class Info</CardTitle>
+              <div class="p-2 bg-purple-bg rounded-sm">
+                <Info class="w-5 h-5 text-purple-text" />
+              </div>
             </CardHeader>
             <CardContent>
               <template v-if="loadingDetail">
@@ -269,11 +304,11 @@ onMounted(() => fetchClass(classId.value))
               <template v-else>
                 <p class="text-sm text-text-primary">
                   <span class="text-text-secondary">Year Level: </span>
-                  {{ classDetail?.year_level?.description ?? '—' }}
+                  {{ classDetail?.year_level?.description ?? "—" }}
                 </p>
                 <p class="text-sm text-text-primary mt-1">
                   <span class="text-text-secondary">Last Updated: </span>
-                  {{ classDetail?.updated_at ?? '—' }}
+                  {{ classDetail?.updated_at ?? "—" }}
                 </p>
               </template>
             </CardContent>
@@ -281,10 +316,10 @@ onMounted(() => fetchClass(classId.value))
         </div>
 
         <!-- Two-pane layout: student list (40%) | student profile (60%) -->
-        <!-- flex-1 + min-h-0 allows the panes to scroll independently without overflow -->
-        <div class="grid grid-cols-5 gap-6 flex-1 min-h-0">
+        <!-- Fixed height so both panels are bounded — list scrolls internally via ScrollArea -->
+        <div class="grid grid-cols-5 gap-6 h-[700px]">
           <!-- Student List Panel (40%) -->
-          <div class="col-span-2 min-h-0">
+          <div class="col-span-2 overflow-hidden">
             <StudentListPanel
               :students="classDetail?.students ?? []"
               :selected-id="selectedStudentId"
@@ -294,7 +329,7 @@ onMounted(() => fetchClass(classId.value))
           </div>
 
           <!-- Student Profile Panel (60%) -->
-          <div class="col-span-3 min-h-0">
+          <div class="col-span-3 overflow-hidden">
             <StudentProfilePanel
               :student="selectedStudent"
               :class-id="classId"
@@ -309,9 +344,8 @@ onMounted(() => fetchClass(classId.value))
       </template>
     </div>
 
-    <!-- Edit Class dialog — reuses ClassFormDialog in edit mode -->
+    <!-- Edit Class dialog — always rendered; open prop controls visibility (matches ClassDashboard pattern) -->
     <ClassFormDialog
-      v-if="showEditDialog"
       :class-item="editTarget"
       :open="showEditDialog"
       @close="showEditDialog = false"
