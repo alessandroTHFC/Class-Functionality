@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import api from "@/lib/axios";
+import { useReferenceStore } from "@/stores/useReferenceStore";
 import type { AuthUser, LoginResponse } from "@/types";
 
 export const useAuthStore = defineStore("auth", () => {
@@ -47,11 +48,18 @@ export const useAuthStore = defineStore("auth", () => {
   }
 
   async function logout(): Promise<void> {
-    await api.post("/logout");
-    token.value = null;
-    user.value = null;
-    localStorage.removeItem("auth_token");
-    localStorage.removeItem("auth_user");
+    // Clear local state regardless of API response — if the token is already
+    // invalid (e.g. after a fresh DB seed) the call will 401 but we still
+    // need to drop the session on the frontend side.
+    try {
+      await api.post("/logout");
+    } finally {
+      token.value = null;
+      user.value = null;
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("auth_user");
+      useReferenceStore().reset();
+    }
   }
 
   return { token, user, isAuthenticated, hasRole, canCreate, canEdit, canDelete, canAddNotes, login, logout };

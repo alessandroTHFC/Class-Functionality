@@ -37,8 +37,8 @@ class SchoolClass extends Model
     public function students(): BelongsToMany
     {
         return $this->belongsToMany(Student::class, 'class_students', 'class_id', 'student_id')
-            ->orderBy('family_name')
-            ->orderBy('given_name');
+            ->orderBy('given_name')
+            ->orderBy('family_name');
     }
 
     public function notes(): HasMany

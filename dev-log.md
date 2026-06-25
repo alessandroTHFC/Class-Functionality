@@ -557,3 +557,70 @@ A series of user-directed refinements applied after the initial build:
 - **Dialog `v-if` gotcha** — if a dialog mounts with `open: true`, a `watch(() => props.open)` never fires because there is no false → true transition. Always render dialogs unconditionally; control visibility with the `open` prop. This matches the pattern already in `ClassDashboard`
 
 ---
+
+## Post-Phase 12 — Fixes & Polish
+
+**Status: Complete.**
+
+Small fixes and visual polish applied after Phase 12 sign-off.
+
+---
+
+### Seeder — per-tenant user names
+
+**Problem:** Both Springfield Primary School and Riverside Secondary College had identical user names (`Admin User`, `Jane Coordinator`, etc.). When switching between tenant accounts during a demo there was no visual signal in the sidebar that a different tenant was active.
+
+**Fix:**
+
+- `UserSeeder::run()` now accepts a second parameter `array $names = []`, merged over a set of defaults. Names remain the same for Springfield (no change to that tenant's setup).
+- `TenantSeeder::seedTenant()` signature extended to accept `array $userNames` and pass it through to `UserSeeder`. Riverside Secondary College now receives distinct names:
+
+  | Role | Springfield | Riverside |
+  |---|---|---|
+  | school-admin | Admin User | Marco Rossi |
+  | coordinator | Jane Coordinator | Giulia Coordinator |
+  | teacher | John Teacher | Luca Teacher |
+  | teachers-assistant | Sarah Assistant | Sofia Assistant |
+  | read-only | Read Only User | Read Only User |
+
+The sidebar avatar popover displays the user's name and tenant name on every page — switching tenants is now immediately obvious from the avatar popover without needing to check the URL or any other indicator.
+
+---
+
+### Cross-tenant data leakage via cached Pinia store (critical)
+
+**Discovered by:** thorough manual testing — switching between tenants in the same browser tab session.
+
+**Symptom:** A user logged in as a Riverside Secondary College account was seeing Springfield Primary School staff names in the "Assign Staff" dropdown inside the class form dialog.
+
+**Root cause:** `useReferenceStore` loads year levels and staff users once and sets a `loaded = true` flag to prevent repeat API calls across navigations. This is correct behaviour within a single tenant session. The problem is that a SPA logout is a JavaScript route change, not a browser page reload — the Pinia store lives in memory for the lifetime of the browser tab, not the login session. When a Springfield user logged out and a Riverside user logged in within the same tab, `load()` saw `loaded = true` and returned immediately without fetching, leaving Springfield's staff list in place.
+
+**Why students weren't affected:** The student list in `ClassFormDialog` is fetched fresh every time the dialog opens via a `watch(() => props.open)` watcher — it has no `loaded` cache. Year levels appeared correct because they are identical across tenants (Foundation to Year 12 are seeded the same way for both).
+
+**Impact:** Any data stored in `useReferenceStore` at logout was potentially visible to the next tenant to log in on the same tab. In this case: staff user names and year levels. With the current seeder, year levels are identical so only user names were visibly wrong. In a real deployment with different year level structures per school, both lists would leak.
+
+**Fix:**
+- `reset()` method added to `useReferenceStore` — clears `yearLevels`, `users`, and sets `loaded = false`
+- `useAuthStore.logout()` calls `useReferenceStore().reset()` in the `finally` block, ensuring the cache is wiped on every logout regardless of whether the API call succeeds
+
+This guarantees the next login always fetches fresh data scoped to the new tenant's context.
+
+---
+
+### Logout resilience after `migrate:fresh`
+
+**Problem:** Running `php artisan migrate:fresh --seed` wipes the `personal_access_tokens` table. Any browser session holding a now-invalid token could not log out — `POST /api/logout` returned 401, `logout()` threw, and the `finally` block (which clears localStorage) never ran.
+
+**Fix:** `useAuthStore.logout()` now wraps the API call in a `try/finally`. The `finally` block unconditionally clears `token`, `user`, `auth_token`, and `auth_user` from both reactive state and localStorage, regardless of whether the API call succeeded or threw. The user is always redirected to the login screen.
+
+**Workaround for already-stuck sessions:** Open DevTools → Application → Local Storage → delete `auth_token` and `auth_user` → refresh.
+
+---
+
+### Login page — purple accent
+
+**Change:** The left branding panel headline "Class management / made simple." now renders with "made simple." in the secondary purple (`text-[#6941C6]`). This is a two-tone hero text treatment common in modern SaaS products and introduces the purple secondary colour on the first screen a user sees, consistent with its use across the authenticated app (stat card icons, student badges, avatar backgrounds).
+
+No other elements on the login page were changed.
+
+---

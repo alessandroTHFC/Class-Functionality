@@ -7,14 +7,23 @@ use Illuminate\Database\Seeder;
 
 class UserSeeder extends Seeder
 {
-    public function run(string $emailDomain = 'demo.com'): void
+    public function run(string $emailDomain = 'demo.com', array $names = []): void
     {
+        // Fall back to generic names if none provided for this tenant.
+        $names = array_merge([
+            'admin'     => 'Admin User',
+            'coord'     => 'Jane Coordinator',
+            'teacher'   => 'John Teacher',
+            'assistant' => 'Sarah Assistant',
+            'readonly'  => 'Read Only User',
+        ], $names);
+
         $users = [
-            ['name' => 'Admin User',       'email' => "admin@{$emailDomain}",       'role' => 'school-admin'],
-            ['name' => 'Jane Coordinator', 'email' => "coordinator@{$emailDomain}",  'role' => 'coordinator'],
-            ['name' => 'John Teacher',     'email' => "teacher@{$emailDomain}",      'role' => 'teacher'],
-            ['name' => 'Sarah Assistant',  'email' => "assistant@{$emailDomain}",    'role' => 'teachers-assistant'],
-            ['name' => 'Read Only User',   'email' => "readonly@{$emailDomain}",     'role' => 'read-only'],
+            ['name' => $names['admin'],     'email' => "admin@{$emailDomain}",       'role' => 'school-admin'],
+            ['name' => $names['coord'],     'email' => "coordinator@{$emailDomain}",  'role' => 'coordinator'],
+            ['name' => $names['teacher'],   'email' => "teacher@{$emailDomain}",      'role' => 'teacher'],
+            ['name' => $names['assistant'], 'email' => "assistant@{$emailDomain}",    'role' => 'teachers-assistant'],
+            ['name' => $names['readonly'],  'email' => "readonly@{$emailDomain}",     'role' => 'read-only'],
         ];
 
         foreach ($users as $data) {

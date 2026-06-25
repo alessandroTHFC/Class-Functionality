@@ -48,5 +48,12 @@ export const useReferenceStore = defineStore('reference', () => {
     loaded.value = true
   }
 
-  return { yearLevels, users, loaded, load }
+  // Called on logout so the next login always fetches data for the new tenant.
+  function reset(): void {
+    yearLevels.value = []
+    users.value = []
+    loaded.value = false
+  }
+
+  return { yearLevels, users, loaded, load, reset }
 })

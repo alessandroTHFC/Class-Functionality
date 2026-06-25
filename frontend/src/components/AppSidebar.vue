@@ -44,7 +44,7 @@ async function handleLogout() {
 </script>
 
 <template>
-  <div class="flex min-h-screen">
+  <div class="flex h-screen">
     <!-- ── 88px icon-only sidebar ────────────────────────────────────────── -->
     <aside
       class="w-[88px] flex-shrink-0 bg-sidebar flex flex-col items-center py-4"
