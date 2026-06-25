@@ -21,6 +21,7 @@ class ClassDetailResource extends JsonResource
                 'name' => $this->createdBy?->name,
             ],
             'assigned_users' => UserResource::collection($this->whenLoaded('users')),
+            'updated_at'     => $this->updated_at?->toDateString(),
             'nccd_summary'   => $this->when($students instanceof \Illuminate\Support\Collection, fn () => [
                 'QDTP'          => $students->filter(fn ($s) => $s->nccd_level === NccdLevelEnum::QDTP)->count(),
                 'Supplementary' => $students->filter(fn ($s) => $s->nccd_level === NccdLevelEnum::Supplementary)->count(),

@@ -74,11 +74,13 @@ export interface NccdSummary {
   Extensive: number
 }
 
+// StudentDetail maps to ClassStudentResource — one student as enrolled in a class.
 export interface StudentDetail {
   id: number
   full_name: string
   given_name: string
   family_name: string
+  date_of_birth: string | null
   year_level: YearLevel | null
   nccd_level: string | null
   nccd_category: string | null
@@ -92,6 +94,7 @@ export interface ClassDetail {
   year_level: YearLevel | null
   created_by: { id: number; name: string }
   assigned_users: UserSummary[]
+  updated_at: string
   nccd_summary: NccdSummary
   students: StudentDetail[]
 }

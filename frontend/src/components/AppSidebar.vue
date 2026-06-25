@@ -3,6 +3,7 @@ import { computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { BookOpen, LogOut, Users, BarChart2, Settings } from "lucide-vue-next";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { getInitials } from "@/lib/utils";
 import Popover from "@/components/ui/Popover.vue";
 import PopoverTrigger from "@/components/ui/PopoverTrigger.vue";
 import PopoverContent from "@/components/ui/PopoverContent.vue";
@@ -15,17 +16,7 @@ const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
 
-// Derive up to 2 initials from the authenticated user's full name.
-// e.g. "Jane Smith" → "JS", "Alice" → "A"
-const initials = computed(() => {
-  const name = authStore.user?.name ?? "";
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-});
+const initials = computed(() => getInitials(authStore.user?.name ?? ""));
 
 // Format a role slug into a human-readable label.
 // e.g. "school-admin" → "School Admin", "teachers-assistant" → "Teachers Assistant"

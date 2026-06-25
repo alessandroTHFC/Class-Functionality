@@ -14,6 +14,7 @@ class ClassStudentResource extends JsonResource
             'full_name'                           => $this->full_name,
             'given_name'                          => $this->given_name,
             'family_name'                         => $this->family_name,
+            'date_of_birth'                       => $this->date_of_birth?->toDateString(),
             'year_level'                          => new YearLevelResource($this->whenLoaded('yearLevel')),
             'nccd_level'                          => $this->nccd_level?->value,
             'nccd_category'                       => $this->nccd_category?->value,

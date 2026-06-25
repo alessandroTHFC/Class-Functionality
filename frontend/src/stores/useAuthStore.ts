@@ -12,7 +12,13 @@ export const useAuthStore = defineStore("auth", () => {
   console.log("user", user.value);
 
   // isAuthenticated is derived from the token — no token means not logged in.
-  const isAuthenticated = computed(() => !!token.value);
+  const isAuthenticated = computed(() => !!token.value)
+
+  // Returns true if the authenticated user holds at least one of the given roles.
+  // Pass multiple roles when a feature is shared across role tiers.
+  function hasRole(...allowedRoles: string[]): boolean {
+    return (user.value?.roles ?? []).some((r) => allowedRoles.includes(r))
+  };
 
   // Persist token and user to localStorage so the session survives a browser refresh.
   // The Axios interceptor in src/lib/axios.ts reads auth_token on every request.
@@ -41,5 +47,5 @@ export const useAuthStore = defineStore("auth", () => {
     localStorage.removeItem("auth_user");
   }
 
-  return { token, user, isAuthenticated, login, logout };
+  return { token, user, isAuthenticated, hasRole, login, logout };
 });

@@ -437,30 +437,43 @@ Split Layout
 
 ## Notes List (`NotesList.vue`)
 
-Timeline layout — not a table.
+Chat-window layout. The Notes tab is a flex column:
+- **Top:** scrollable message area (`flex-1 overflow-y-auto`) — fills all available space
+- **Bottom:** `NoteComposer` pinned to the bottom of the panel
+
+Notes are ordered chronologically (oldest at the top, newest at the bottom). The scroll position starts at the bottom so the most recent note is immediately visible.
 
 ### Note Card (`NoteCard.vue`)
 
-**shadcn:** Card, Avatar, Badge, Button
+**shadcn:** Avatar
+
+Each note renders as a chat message row:
+
+```
+[Avatar]  Jane Smith          2 Jun 2025
+          Note content text goes here...
+```
 
 **Structure:**
-- Staff initials avatar (teal tint) + author name (bold) + relative timestamp ("2 hours ago")
-- Note body text
-- Bookmark icon (decorative — no bookmark feature)
-- More actions menu (DropdownMenu — included for future use, no actions for MVP)
+- Staff initials avatar (teal, 32px circle) — left-aligned, sits at the top of the message
+- Right of avatar: author name (bold, `text-text-primary`) + note date (secondary, small) on the same line
+- Below name/date: note body text (`text-text-primary`)
+- A subtle divider or vertical spacing separates consecutive messages
+
+No bookmark icon. No more-actions menu. Keep it clean for MVP.
 
 ---
 
 ## Add Note Composer (`NoteComposer.vue`)
 
-Inline at the bottom of the Notes panel — no modal.
+Pinned to the bottom of the Notes panel — no modal. Separated from the message list by a top border.
 
 **shadcn:** Textarea, Button
 
 - Full-width Textarea (placeholder: "Add a note...")
 - "Save Note" button (primary, right-aligned, icon: `Send`)
 
-Submits to `POST /api/notes` with the current student ID and class ID. Refreshes notes list on success.
+Submits to `POST /api/notes` with the current student ID and class ID. Refreshes notes list on success. Clears the textarea on success.
 
 ---
 
